@@ -1,0 +1,15 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-socketio==5.11.4
+cognee[postgres-binary,neo4j,docs,scraping]==0.1.39
+asyncpg==0.29.0
+pydantic==2.8.2
+pydantic-settings==2.4.0
+httpx==0.27.2
+python-dotenv==1.0.1
+structlog==24.4.0
+ruff==0.6.9
+pytest==8.3.3
+pytest-asyncio==0.24.0
+neo4j==5.28.0
+openai==1.40.0

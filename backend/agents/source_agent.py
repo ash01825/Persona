@@ -1,0 +1,1 @@
+"""Source gathering agent — stub."""

@@ -1,0 +1,1 @@
+"""Mind service — stub."""
