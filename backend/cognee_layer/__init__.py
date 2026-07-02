@@ -16,41 +16,39 @@ async def initialize_cognee() -> None:
     - Graph store: Neo4j
     - Relational store: PostgreSQL
 
-    Cognee 1.2.2 API:
-    - set_vector_db_config (not set_vectordb_config)
-    - set_embedding_config for embedding model/key/endpoint
-    - Auth is on by default, disabled via ENABLE_BACKEND_ACCESS_CONTROL=false
+    Cognee 1.2.2 field naming: all config dict keys use prefixed names
+    (llm_provider not provider, vector_db_provider not provider, etc.)
     """
     try:
         # ── LLM configuration ──────────────────────────────────────────────
-        await cognee.config.set_llm_config({
-            "provider": settings.llm_provider,
-            "model": settings.llm_model,
-            "api_key": settings.llm_api_key,
+        cognee.config.set_llm_config({
+            "llm_provider": settings.llm_provider,
+            "llm_model": settings.llm_model,
+            "llm_api_key": settings.llm_api_key,
         })
 
         # ── Embedding configuration ─────────────────────────────────────────
-        await cognee.config.set_embedding_config({
+        cognee.config.set_embedding_config({
             "embedding_model": settings.embedding_model,
             "embedding_endpoint": settings.embedding_api_base,
             "embedding_api_key": settings.embedding_api_key,
         })
 
         # ── Vector store (pgvector) ─────────────────────────────────────────
-        await cognee.config.set_vector_db_config({
-            "provider": "pgvector",
-            "url": (
+        cognee.config.set_vector_db_config({
+            "vector_db_provider": "pgvector",
+            "vector_db_url": (
                 f"postgresql+asyncpg://{settings.db_user}:{settings.db_password}"
                 f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
             ),
         })
 
         # ── Graph store (Neo4j) ─────────────────────────────────────────────
-        await cognee.config.set_graph_db_config({
-            "provider": settings.graph_database_provider,
-            "url": settings.graph_database_url,
-            "username": settings.graph_database_username,
-            "password": settings.graph_database_password,
+        cognee.config.set_graph_db_config({
+            "graph_database_provider": settings.graph_database_provider,
+            "graph_database_url": settings.graph_database_url,
+            "graph_database_username": settings.graph_database_username,
+            "graph_database_password": settings.graph_database_password,
         })
 
         logger.info(

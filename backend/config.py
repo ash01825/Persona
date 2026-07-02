@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # PostgreSQL
     db_provider: str = "postgres"
     db_host: str = "localhost"
-    db_port: int = 5432
+    db_port: int = 5433
     db_user: str = "persona"
     db_password: str = "persona"
     db_name: str = "persona"
