@@ -72,13 +72,16 @@ Be conservative. Quality over quantity."""
 
 
 async def extract_from_chunk(
-    chunk_data: dict,
+    chunk_data: list[dict],
     ctx: PipelineContext = None,
 ) -> list[Any]:
     """
     Cognee pipeline Task: extract DataPoints from a single ~800-token text chunk.
 
-    chunk_data shape:
+    Cognee 1.2.2 passes data items wrapped in a list (batch support).
+    We process one chunk at a time due to Gemini rate limits.
+
+    chunk_data shape: list containing one dict:
         {
             "content": str,
             "source_document_id": str,
@@ -90,15 +93,17 @@ async def extract_from_chunk(
 
     Returns list of DataPoints stored. Also persisted to Cognee.
     """
-    content = chunk_data["content"]
-    person_name = chunk_data.get("person_name", "this person")
+    chunk = chunk_data[0]
+
+    content = chunk["content"]
+    person_name = chunk.get("person_name", "this person")
 
     source_fragment = SourceFragment(
         content=content,
-        source_document_id=chunk_data["source_document_id"],
-        source_title=chunk_data.get("source_title", ""),
-        source_type=chunk_data.get("source_type", ""),
-        chunk_index=chunk_data.get("chunk_index", 0),
+        source_document_id=chunk["source_document_id"],
+        source_title=chunk.get("source_title", ""),
+        source_type=chunk.get("source_type", ""),
+        chunk_index=chunk.get("chunk_index", 0),
     )
     datapoints: list[Any] = [source_fragment]
 
@@ -133,17 +138,17 @@ async def extract_from_chunk(
     except Exception as exc:
         logger.warning(
             "LLM extraction failed for chunk, storing SourceFragment only",
-            chunk_index=chunk_data.get("chunk_index"),
+            chunk_index=chunk.get("chunk_index"),
             error=str(exc),
         )
 
-    await add_data_points(datapoints, ctx=ctx)
+    await add_data_points(datapoints, ctx=None)
 
     await asyncio.sleep(GEMINI_RATE_LIMIT_SLEEP)
 
     logger.debug(
         "Chunk processed",
-        chunk_index=chunk_data.get("chunk_index"),
+        chunk_index=chunk.get("chunk_index"),
         entities=len(datapoints) - 1,
     )
 
@@ -178,7 +183,6 @@ async def run_ingestion_pipeline(
         tasks=[Task(extract_from_chunk)],
         data=chunks,
         dataset=dataset_name,
-        context={"person_name": mind_id},
     )
 
     logger.info(

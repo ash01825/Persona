@@ -92,7 +92,7 @@ async def run_theme_clustering(mind_id: str) -> list[Theme]:
                 themes.append(theme)
 
             if themes:
-                await add_data_points(themes)
+                await add_data_points(themes, ctx=None)
                 logger.info("Themes created", count=len(themes))
 
             await session.run(

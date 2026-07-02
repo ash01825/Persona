@@ -15,10 +15,12 @@ class Settings(BaseSettings):
     llm_instructor_mode: str = "json_mode"
     structured_output_framework: str = "instructor"
 
-    # Embedding (Qwen3 via Rewind.ai)
+    # Embedding
+    embedding_provider: str = ""
+    embedding_endpoint: str = ""
+    embedding_model: str = ""
     embedding_api_key: str = ""
-    embedding_api_base: str = "https://api.rewind.ai/v1/"
-    embedding_model: str = "qwen/qwen3-embedding-8b"
+    embedding_dimensions: int = 2048
 
     # PostgreSQL
     db_provider: str = "postgres"
@@ -32,7 +34,7 @@ class Settings(BaseSettings):
     graph_database_provider: str = "neo4j"
     graph_database_url: str = "bolt://localhost:7687"
     graph_database_username: str = "neo4j"
-    graph_database_password: str = "persona"
+    graph_database_password: str = "persona1"
 
     # App
     frontend_url: str = "http://localhost:3000"

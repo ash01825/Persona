@@ -18,15 +18,15 @@ services:
   neo4j:
     image: neo4j:5
     environment:
-      NEO4J_AUTH: neo4j/persona
-      NEO4J_PLUGINS: '["graph-data-science"]'
+      NEO4J_AUTH: neo4j/persona1
+      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
     ports:
       - "7474:7474"
       - "7687:7687"
     volumes:
       - neo4j_data:/data
     healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "persona", "RETURN 1"]
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "persona1", "RETURN 1"]
       interval: 10s
       timeout: 10s
       retries: 10

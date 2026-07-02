@@ -29,9 +29,21 @@ async def initialize_cognee() -> None:
 
         # ── Embedding configuration ─────────────────────────────────────────
         cognee.config.set_embedding_config({
+            "embedding_provider": settings.embedding_provider,
             "embedding_model": settings.embedding_model,
-            "embedding_endpoint": settings.embedding_api_base,
+            "embedding_endpoint": settings.embedding_endpoint,
             "embedding_api_key": settings.embedding_api_key,
+            "embedding_dimensions": settings.embedding_dimensions,
+        })
+
+        # ── Relational store (PostgreSQL) ───────────────────────────────────
+        cognee.config.set_relational_db_config({
+            "db_provider": "postgres",
+            "db_host": settings.db_host,
+            "db_port": settings.db_port,
+            "db_name": settings.db_name,
+            "db_username": settings.db_user,
+            "db_password": settings.db_password,
         })
 
         # ── Vector store (pgvector) ─────────────────────────────────────────
