@@ -1,5 +1,8 @@
 """Application settings loaded from .env file."""
-from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+load_dotenv()
+
+from pydantic_settings import BaseSettings  # noqa: E402
 
 
 class Settings(BaseSettings):
@@ -30,10 +33,6 @@ class Settings(BaseSettings):
     graph_database_url: str = "bolt://localhost:7687"
     graph_database_username: str = "neo4j"
     graph_database_password: str = "persona"
-
-    # Cognee
-    enable_backend_access_control: bool = False
-    caching: bool = False
 
     # App
     frontend_url: str = "http://localhost:3000"

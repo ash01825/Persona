@@ -1,5 +1,4 @@
 """Cognee initialization — configures all three storage backends."""
-import os
 import cognee
 import structlog
 

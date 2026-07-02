@@ -16,8 +16,7 @@ from cognee.tasks.storage import add_data_points
 from pydantic import BaseModel
 
 from cognee_layer.ontology import (
-    Concept, Belief, Creation, Finding,
-    Person, Institution, SourceFragment,
+    Concept, Belief, Creation, Person, SourceFragment,
 )
 
 logger = structlog.get_logger()
