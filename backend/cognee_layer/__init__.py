@@ -1,4 +1,5 @@
 """Cognee initialization — configures all three storage backends."""
+import os
 import cognee
 import structlog
 
@@ -16,9 +17,10 @@ async def initialize_cognee() -> None:
     - Graph store: Neo4j
     - Relational store: PostgreSQL
 
-    IMPORTANT: The exact Cognee config API must be verified after installing the package.
-    Run: python -c "import cognee; help(cognee.config)"
-    The method names below are based on Cognee docs but may differ slightly in your version.
+    Cognee 1.2.2 API:
+    - set_vector_db_config (not set_vectordb_config)
+    - set_embedding_config for embedding model/key/endpoint
+    - Auth is on by default, disabled via ENABLE_BACKEND_ACCESS_CONTROL=false
     """
     try:
         # ── LLM configuration ──────────────────────────────────────────────
@@ -29,15 +31,19 @@ async def initialize_cognee() -> None:
         })
 
         # ── Embedding configuration ─────────────────────────────────────────
-        await cognee.config.set_vectordb_config({
+        await cognee.config.set_embedding_config({
+            "embedding_model": settings.embedding_model,
+            "embedding_endpoint": settings.embedding_api_base,
+            "embedding_api_key": settings.embedding_api_key,
+        })
+
+        # ── Vector store (pgvector) ─────────────────────────────────────────
+        await cognee.config.set_vector_db_config({
             "provider": "pgvector",
             "url": (
                 f"postgresql+asyncpg://{settings.db_user}:{settings.db_password}"
                 f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
             ),
-            "embedding_model": settings.embedding_model,
-            "embedding_api_key": settings.embedding_api_key,
-            "embedding_api_base": settings.embedding_api_base,
         })
 
         # ── Graph store (Neo4j) ─────────────────────────────────────────────
