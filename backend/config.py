@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # LLM
     llm_provider: str = "gemini"
-    llm_model: str = "gemini/gemini-2.0-flash"
+    llm_model: str = "gemini/gemini-3.1-flash-lite"
     llm_api_key: str = ""
     llm_instructor_mode: str = "json_mode"
     structured_output_framework: str = "instructor"

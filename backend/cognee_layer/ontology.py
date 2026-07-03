@@ -32,6 +32,9 @@ class Concept(DataPoint):
 
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
+    influenced_by: SkipValidation[Any] = []
+    created: SkipValidation[Any] = []
 
 
 class Belief(DataPoint):
@@ -41,8 +44,13 @@ class Belief(DataPoint):
     or advocated for, not just what they knew or created.
     """
 
-    statement: Annotated[str, Dedup(), Embeddable()]
-    evolved_from: SkipValidation[Any] = None
+    name: Annotated[str, Dedup(), Embeddable()]
+    description: Annotated[str, Embeddable()]
+    supports: SkipValidation[Any] = []
+    contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
+    influenced_by: SkipValidation[Any] = []
+    created: SkipValidation[Any] = []
 
 
 class Creation(DataPoint):
@@ -54,6 +62,12 @@ class Creation(DataPoint):
     creation_type: str = ""
     description: Annotated[str, Embeddable()]
 
+    supports: SkipValidation[Any] = []
+    contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
+    influenced_by: SkipValidation[Any] = []
+    created: SkipValidation[Any] = []
+
 
 class Finding(DataPoint):
     """
@@ -61,7 +75,14 @@ class Finding(DataPoint):
     Primarily used for scientists, researchers, and academics.
     """
 
-    description: Annotated[str, Dedup(), Embeddable()]
+    name: Annotated[str, Dedup(), Embeddable()]
+    description: Annotated[str, Embeddable()]
+
+    supports: SkipValidation[Any] = []
+    contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
+    influenced_by: SkipValidation[Any] = []
+    created: SkipValidation[Any] = []
 
 
 class Person(DataPoint):
@@ -74,6 +95,9 @@ class Person(DataPoint):
     role: str = ""
     created: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
+    supports: SkipValidation[Any] = []
+    contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
 
 
 class Institution(DataPoint):

@@ -33,7 +33,8 @@ class _ExtractedConcept(BaseModel):
 
 class _ExtractedBelief(BaseModel):
     """LLM output for a belief."""
-    statement: str
+    name: str
+    description: str
 
 
 class _ExtractedCreation(BaseModel):
@@ -51,6 +52,7 @@ class _ExtractedPerson(BaseModel):
 
 class _ExtractedFinding(BaseModel):
     """LLM output for a research finding or empirical observation."""
+    name: str
     description: str
 
 
@@ -88,8 +90,8 @@ concepts — Ideas, theories, intellectual constructs, or topics explicitly disc
   Example: {{"name": "Alternating Current", "description": "Electric current that periodically reverses direction", "domain": "electrical engineering"}}
 
 beliefs — Personal convictions, values, or strongly held stances the person expresses.
-  FIELDS: statement (the belief itself as a complete sentence quoting or paraphrasing the person)
-  Example: {{"statement": "Tesla believed AC was superior to DC for long-distance transmission"}}
+  FIELDS: name (a short summary of the belief, e.g. "Wireless Energy is Inevitable"), description (the complete detailed sentence expressing the belief)
+  Example: {{"name": "AC Superiority", "description": "Tesla believed AC was superior to DC for long-distance transmission"}}
 
 creations — Books, patents, companies, algorithms, or artworks explicitly mentioned.
   FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company", "power plant", "project"), description (what it is/was)
@@ -99,7 +101,7 @@ people — Other individuals mentioned (include their name and role relative to 
   FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "employer", "rival", "mentor")
 
 findings — Specific research results, discoveries, or empirical observations.
-  FIELDS: description (the finding itself as a complete sentence describing what was discovered or observed)
+  FIELDS: name (a short title of the finding), description (the finding itself as a complete sentence describing what was discovered)
 
 Use the most complete human-readable name for every entity (e.g., "Alternating Current", not "Current").
 
@@ -158,12 +160,30 @@ async def extract_from_chunk(
     datapoints: list[Any] = [source_fragment]
     node_map: dict[str, Any] = {}
 
+    subject = Person(name=person_name, role="subject")
+    datapoints.append(subject)
+    node_map[person_name.lower()] = subject
+
     try:
         system_prompt = EXTRACTION_SYSTEM_PROMPT.format(person_name=person_name)
         extracted: ChunkExtractions = await LLMGateway.acreate_structured_output(
             content,
             system_prompt,
             ChunkExtractions,
+        )
+
+        logger.info(
+            "LLM extraction results",
+            concepts=len(extracted.concepts),
+            beliefs=len(extracted.beliefs),
+            creations=len(extracted.creations),
+            people=len(extracted.people),
+            findings=len(extracted.findings),
+            relationships=len(extracted.relationships),
+            raw_relationships=[
+                f"{r.source_name} -> {r.target_name} ({r.relationship_type})"
+                for r in extracted.relationships
+            ],
         )
 
         for c in extracted.concepts:
@@ -176,9 +196,9 @@ async def extract_from_chunk(
             node_map[c.name.lower()] = node
 
         for b in extracted.beliefs:
-            node = Belief(statement=b.statement)
+            node = Belief(name=b.name, description=b.description)
             datapoints.append(node)
-            node_map[b.statement.lower()] = node
+            node_map[b.name.lower()] = node
 
         for cr in extracted.creations:
             node = Creation(
@@ -195,9 +215,9 @@ async def extract_from_chunk(
             node_map[p.name.lower()] = node
 
         for f in extracted.findings:
-            node = Finding(description=f.description)
+            node = Finding(name=f.name, description=f.description)
             datapoints.append(node)
-            node_map[f.description.lower()] = node
+            node_map[f.name.lower()] = node
 
         for rel in extracted.relationships:
             if rel.relationship_type not in VALID_RELATIONSHIP_TYPES:
@@ -214,7 +234,7 @@ async def extract_from_chunk(
             elif rel.relationship_type == "contradicts" and hasattr(source, "contradicts"):
                 source.contradicts.append(target)
             elif rel.relationship_type == "evolved_from" and hasattr(source, "evolved_from"):
-                source.evolved_from = target
+                source.evolved_from.append(target)
             elif rel.relationship_type == "influenced_by" and hasattr(source, "influenced_by"):
                 source.influenced_by.append(target)
             elif rel.relationship_type == "created" and hasattr(source, "created"):
