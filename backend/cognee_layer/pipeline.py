@@ -254,7 +254,7 @@ async def extract_from_chunk(
     logger.debug(
         "Chunk processed",
         chunk_index=chunk.get("chunk_index"),
-        entities=len(datapoints) - 1,
+        entities=len(datapoints) - 2,
     )
 
     return datapoints
@@ -280,9 +280,6 @@ async def run_ingestion_pipeline(
     dataset_name = f"mind_{mind_id}"
 
     logger.info("Starting ingestion pipeline", mind_id=mind_id, chunks=len(chunks))
-
-    for i, chunk in enumerate(chunks):
-        chunk["_rate_limit_index"] = i
 
     await cognee.run_custom_pipeline(
         tasks=[Task(extract_from_chunk)],

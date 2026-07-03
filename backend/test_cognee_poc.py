@@ -20,20 +20,20 @@ from cognee_layer.pipeline import run_ingestion_pipeline
 
 TEST_CHUNK = {
     "content": (
-        "Tesla firmly believed that alternating current was far superior to direct "
-        "current for long-distance power transmission. He demonstrated this through "
-        "his work at Westinghouse, culminating in the Niagara Falls power plant in "
-        "1895. This put him in direct conflict with Edison, who championed DC power. "
-        "Tesla also held a deep conviction that wireless energy transmission across "
-        "vast distances was not only possible but inevitable. This drove his most "
-        "ambitious project — Wardenclyffe Tower — which he believed could provide "
-        "free wireless energy to the world."
+        "Thomas Edison was a staunch defender of Direct Current (DC), believing it to be the "
+        "safest and most reliable method for municipal power distribution. He established the "
+        "Pearl Street Station in New York to prove its viability. Edison heavily criticized "
+        "Alternating Current (AC) as dangerously high-voltage and lethal, a stance that sparked "
+        "the infamous War of the Currents against George Westinghouse and his former employee, "
+        "Nikola Tesla. Edison also maintained a strong conviction that practical, commercial "
+        "application was the sole measure of an invention's value, which drove his prolific "
+        "output at the Menlo Park laboratory."
     ),
-    "source_document_id": "tesla_poc_001",
-    "source_title": "My Inventions (Test)",
+    "source_document_id": "edison_poc_001",
+    "source_title": "Edison Biography (Test)",
     "source_type": "book",
     "chunk_index": 0,
-    "person_name": "Nikola Tesla",
+    "person_name": "Thomas Edison",
 }
 
 
@@ -42,13 +42,13 @@ async def main() -> None:
     await initialize_cognee()
     print("✓ Cognee initialized")
 
-    await run_ingestion_pipeline([TEST_CHUNK], mind_id="tesla_poc")
+    await run_ingestion_pipeline([TEST_CHUNK], mind_id="edison_poc")
     print("✓ Ingestion complete")
 
     import cognee
     from cognee.modules.search.types import SearchType
     results = await cognee.search(
-        query_text="What did Tesla believe about wireless energy?",
+        query_text="What did Edison believe was the sole measure of an invention's value?",
         query_type=SearchType.GRAPH_COMPLETION,
     )
     print(f"✓ Query returned {len(results)} results")

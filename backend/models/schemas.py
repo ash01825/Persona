@@ -19,7 +19,6 @@ class GraphNode(BaseModel):
     centrality: float = 0.0
     theme_id: Optional[str] = None
     source_id: Optional[str] = None
-    is_expanded: bool = False
 
 
 class GraphEdge(BaseModel):
