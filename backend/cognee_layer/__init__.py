@@ -10,8 +10,8 @@ logger = structlog.get_logger()
 async def initialize_cognee() -> None:
     """
     Configure Cognee with:
-    - LLM: Gemini 2.0 Flash (extraction) via LiteLLM
-    - Embedding: Qwen3-Embedding-8B via Rewind.ai (OpenAI-compatible)
+    - LLM: Gemini 3.1-Flash-Lite (extraction) via Google AI Studios
+    - Embedding: jina-embeddings-v4 via Jina
     - Vector store: pgvector (inside PostgreSQL)
     - Graph store: Neo4j
     - Relational store: PostgreSQL

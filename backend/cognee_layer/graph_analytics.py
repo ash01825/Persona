@@ -47,7 +47,9 @@ async def run_theme_clustering(mind_id: str) -> list[Theme]:
                     {
                         supports: {orientation: 'UNDIRECTED'},
                         contradicts: {orientation: 'UNDIRECTED'},
-                        influenced_by: {orientation: 'UNDIRECTED'}
+                        influenced_by: {orientation: 'UNDIRECTED'},
+                        evolved_from: {orientation: 'UNDIRECTED'},
+                        created: {orientation: 'UNDIRECTED'}
                     }
                 )
             """, graph_name=graph_name)

@@ -16,7 +16,7 @@ from cognee.tasks.storage import add_data_points
 from pydantic import BaseModel
 
 from cognee_layer.ontology import (
-    Concept, Belief, Creation, Person, SourceFragment,
+    Concept, Belief, Creation, Finding, Person, SourceFragment,
 )
 
 logger = structlog.get_logger()
@@ -49,6 +49,18 @@ class _ExtractedPerson(BaseModel):
     role: str = ""
 
 
+class _ExtractedFinding(BaseModel):
+    """LLM output for a research finding or empirical observation."""
+    description: str
+
+
+class _ExtractedRelationship(BaseModel):
+    """LLM output for an edge between two extracted entities."""
+    source_name: str
+    target_name: str
+    relationship_type: str
+
+
 class ChunkExtractions(BaseModel):
     """Everything the LLM extracts from a single 800-token chunk."""
 
@@ -56,19 +68,57 @@ class ChunkExtractions(BaseModel):
     beliefs: list[_ExtractedBelief] = []
     creations: list[_ExtractedCreation] = []
     people: list[_ExtractedPerson] = []
+    findings: list[_ExtractedFinding] = []
+    relationships: list[_ExtractedRelationship] = []
 
 
-EXTRACTION_SYSTEM_PROMPT = """You are analyzing a text passage written by or about {person_name}.
+VALID_RELATIONSHIP_TYPES = {
+    "supports", "contradicts", "evolved_from", "influenced_by", "created",
+}
 
-Extract ONLY what is clearly stated in THIS specific passage. Do not infer or guess.
+EXTRACTION_SYSTEM_PROMPT = """You are a top-tier entity extraction algorithm designed to build an intellectual knowledge graph for {person_name}.
+Your task is to extract Nodes (entities) and Edges (relationships) from the provided text.
+Extract ONLY what is clearly stated in THIS specific passage. Do not infer or guess outside knowledge.
 
-- concepts: Ideas, theories, intellectual constructs, topics explicitly discussed
-- beliefs: Personal convictions or strongly held stances the person expresses
-- creations: Books, patents, companies, algorithms, artworks explicitly mentioned
-- people: Other individuals mentioned (their name and role relative to {person_name})
+# 1. Extracting Nodes
+Identify the following types of entities using their EXACT field names:
 
-Return empty lists if nothing clear is found for a category.
-Be conservative. Quality over quantity."""
+concepts — Ideas, theories, intellectual constructs, or topics explicitly discussed.
+  FIELDS: name (the concept's human-readable name), description (what it is), domain (optional, e.g. "physics")
+  Example: {{"name": "Alternating Current", "description": "Electric current that periodically reverses direction", "domain": "electrical engineering"}}
+
+beliefs — Personal convictions, values, or strongly held stances the person expresses.
+  FIELDS: statement (the belief itself as a complete sentence quoting or paraphrasing the person)
+  Example: {{"statement": "Tesla believed AC was superior to DC for long-distance transmission"}}
+
+creations — Books, patents, companies, algorithms, or artworks explicitly mentioned.
+  FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company", "power plant", "project"), description (what it is/was)
+  Example: {{"name": "Wardenclyffe Tower", "creation_type": "project", "description": "Unfinished wireless transmission station"}}
+
+people — Other individuals mentioned (include their name and role relative to {person_name}).
+  FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "employer", "rival", "mentor")
+
+findings — Specific research results, discoveries, or empirical observations.
+  FIELDS: description (the finding itself as a complete sentence describing what was discovered or observed)
+
+Use the most complete human-readable name for every entity (e.g., "Alternating Current", not "Current").
+
+# 2. Extracting Edges (Relationships)
+For EVERY pair of related entities you extracted, create a relationship. A dense knowledge graph is the goal. Look for:
+- Comparison or contrast between concepts → "contradicts" or "supports"
+- One person or concept influencing another → "influenced_by"
+- A person making or building something → "created"
+- A belief or concept developing from an earlier one → "evolved_from"
+- Evidence or proof relationships → "supports"
+
+Valid relationship_type values:
+- "supports": A concept or belief provides evidence or support for another.
+- "contradicts": Two concepts, beliefs, or people directly conflict or oppose each other.
+- "evolved_from": A belief or concept grew out of an earlier one.
+- "influenced_by": A person or concept was influenced by another person or concept.
+- "created": A person created a specific creation or concept.
+
+Extract ALL relationships that are clearly stated in the passage. Do not hold back. If 5 entities are connected, extract 5 relationships. Quality AND completeness matter."""
 
 
 async def extract_from_chunk(
@@ -106,6 +156,7 @@ async def extract_from_chunk(
         chunk_index=chunk.get("chunk_index", 0),
     )
     datapoints: list[Any] = [source_fragment]
+    node_map: dict[str, Any] = {}
 
     try:
         system_prompt = EXTRACTION_SYSTEM_PROMPT.format(person_name=person_name)
@@ -116,24 +167,58 @@ async def extract_from_chunk(
         )
 
         for c in extracted.concepts:
-            datapoints.append(Concept(
+            node = Concept(
                 name=c.name,
                 description=c.description,
                 domain=c.domain,
-            ))
+            )
+            datapoints.append(node)
+            node_map[c.name.lower()] = node
 
         for b in extracted.beliefs:
-            datapoints.append(Belief(statement=b.statement))
+            node = Belief(statement=b.statement)
+            datapoints.append(node)
+            node_map[b.statement.lower()] = node
 
         for cr in extracted.creations:
-            datapoints.append(Creation(
+            node = Creation(
                 name=cr.name,
                 creation_type=cr.creation_type,
                 description=cr.description,
-            ))
+            )
+            datapoints.append(node)
+            node_map[cr.name.lower()] = node
 
         for p in extracted.people:
-            datapoints.append(Person(name=p.name, role=p.role))
+            node = Person(name=p.name, role=p.role)
+            datapoints.append(node)
+            node_map[p.name.lower()] = node
+
+        for f in extracted.findings:
+            node = Finding(description=f.description)
+            datapoints.append(node)
+            node_map[f.description.lower()] = node
+
+        for rel in extracted.relationships:
+            if rel.relationship_type not in VALID_RELATIONSHIP_TYPES:
+                continue
+
+            source = node_map.get(rel.source_name.lower())
+            target = node_map.get(rel.target_name.lower())
+
+            if not source or not target:
+                continue
+
+            if rel.relationship_type == "supports" and hasattr(source, "supports"):
+                source.supports.append(target)
+            elif rel.relationship_type == "contradicts" and hasattr(source, "contradicts"):
+                source.contradicts.append(target)
+            elif rel.relationship_type == "evolved_from" and hasattr(source, "evolved_from"):
+                source.evolved_from = target
+            elif rel.relationship_type == "influenced_by" and hasattr(source, "influenced_by"):
+                source.influenced_by.append(target)
+            elif rel.relationship_type == "created" and hasattr(source, "created"):
+                source.created.append(target)
 
     except Exception as exc:
         logger.warning(

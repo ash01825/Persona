@@ -72,6 +72,7 @@ class Person(DataPoint):
 
     name: Annotated[str, Dedup(), Embeddable()]
     role: str = ""
+    created: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
 
 
