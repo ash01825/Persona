@@ -10,7 +10,7 @@ import structlog
 from typing import List, Dict
 
 from tavily import AsyncTavilyClient
-from crawl4ai import AsyncWebCrawler
+from firecrawl import FirecrawlApp
 import litellm
 
 from cognee_layer.chunker import chunk_document
@@ -24,6 +24,7 @@ os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY", "")
 class SourceGatheringAgent:
     def __init__(self):
         self.tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY", ""))
+        self.firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY", ""))
 
     async def gather_sources(self, person_name: str, max_sources: int = 3) -> List[Dict[str, str]]:
         """
@@ -50,25 +51,32 @@ class SourceGatheringAgent:
         valid_sources = []
         
         # 2. Scrape and Evaluate
-        async with AsyncWebCrawler(verbose=True) as crawler:
-            for url in urls_to_scrape:
-                if len(valid_sources) >= max_sources:
-                    break
+        for url in urls_to_scrape:
+            if len(valid_sources) >= max_sources:
+                break
+                
+            logger.info(f"Scraping {url}...")
+            try:
+                # Run sync Firecrawl client in a background thread
+                result = await asyncio.to_thread(
+                    self.firecrawl.scrape_url, 
+                    url, 
+                    formats=['markdown']
+                )
+                if isinstance(result, dict):
+                    markdown_content = result.get('markdown', '')
+                else:
+                    markdown_content = getattr(result, 'markdown', '')
+            except Exception as e:
+                logger.warning(f"Failed to scrape {url}: {e}")
+                continue
                     
-                logger.info(f"Scraping {url}...")
-                try:
-                    result = await crawler.arun(url=url)
-                    markdown_content = result.markdown
-                except Exception as e:
-                    logger.warning(f"Failed to scrape {url}: {e}")
-                    continue
-                    
-                if not markdown_content or len(markdown_content) < 500:
-                    logger.debug(f"Skipping {url}: Too short.")
-                    continue
-                    
-                # 3. Verify primary source using LLM
-                prompt = f"""You are an expert archivist. 
+            if not markdown_content or len(markdown_content) < 500:
+                logger.debug(f"Skipping {url}: Too short.")
+                continue
+                
+            # 3. Verify primary source using LLM
+            prompt = f"""You are an expert archivist. 
 We are looking for primary sources written BY {person_name}. 
 Evaluate the following text and determine if it is a primary source (e.g. an original letter, patent, book, or paper written by them).
 If it is a secondary source (like a Wikipedia article, a biography written by someone else, or a blog post about them), reject it.
@@ -78,26 +86,26 @@ Respond with ONLY the word "YES" if it is a primary source, or "NO" if it is a s
 Text snippet (first 2000 chars):
 {markdown_content[:2000]}
 """
-                try:
-                    response = litellm.completion(
-                        model="gemini/gemini-2.5-flash",
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    decision = response.choices[0].message.content.strip().upper()
-                except Exception as e:
-                    logger.warning(f"LLM verification failed for {url}: {e}")
-                    continue
-                    
-                if "YES" in decision:
-                    logger.info(f"✅ LLM accepted {url} as primary source.")
-                    valid_sources.append({
-                        "title": url.split("/")[-1] or url,
-                        "content": markdown_content,
-                        "url": url,
-                        "source_type": "web_article"
-                    })
-                else:
-                    logger.info(f"❌ LLM rejected {url} (Secondary source).")
+            try:
+                response = litellm.completion(
+                    model="gemini/gemini-2.5-flash",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                decision = response.choices[0].message.content.strip().upper()
+            except Exception as e:
+                logger.warning(f"LLM verification failed for {url}: {e}")
+                continue
+                
+            if "YES" in decision:
+                logger.info(f"✅ LLM accepted {url} as primary source.")
+                valid_sources.append({
+                    "title": url.split("/")[-1] or url,
+                    "content": markdown_content,
+                    "url": url,
+                    "source_type": "web_article"
+                })
+            else:
+                logger.info(f"❌ LLM rejected {url} (Secondary source).")
                     
         return valid_sources
 

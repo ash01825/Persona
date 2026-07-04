@@ -13,8 +13,8 @@ from agents.source_agent import SourceGatheringAgent
 async def main():
     load_dotenv()
     
-    if not os.getenv("TAVILY_API_KEY") or not os.getenv("GEMINI_API_KEY"):
-        print("❌ Please set TAVILY_API_KEY and GEMINI_API_KEY in your .env file or environment.")
+    if not os.getenv("TAVILY_API_KEY") or not os.getenv("GEMINI_API_KEY") or not os.getenv("FIRECRAWL_API_KEY"):
+        print("❌ Please set TAVILY_API_KEY, GEMINI_API_KEY, and FIRECRAWL_API_KEY in your .env file or environment.")
         return
         
     print("Initializing Source Gathering Agent...")
