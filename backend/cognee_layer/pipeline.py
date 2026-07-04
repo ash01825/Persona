@@ -21,7 +21,7 @@ from cognee_layer.ontology import (
 
 logger = structlog.get_logger()
 
-GEMINI_RATE_LIMIT_SLEEP = 4.0
+GEMINI_RATE_LIMIT_SLEEP = 8.0
 
 
 class _ExtractedConcept(BaseModel):

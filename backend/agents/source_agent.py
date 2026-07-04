@@ -129,6 +129,7 @@ Evaluate the following scraped webpage text.
 
 1. Does this text contain rich, detailed historical information, original writings, or direct quotes by {person_name}? 
 It is OK if it is a high-quality biography, a university archive page, or an article, AS LONG AS it contains substantial, extractable text about their ideas and life.
+CRITICAL: DO NOT accept Wikipedia, encyclopedias, or generic summary sites as primary sources. They are strictly secondary and must be rejected.
 2. Look at the provided list of hyperlinks found on this page. Are there any links that likely point to original PDFs, archives, or primary sources?
 
 Respond ONLY with a valid JSON object in this exact format:
