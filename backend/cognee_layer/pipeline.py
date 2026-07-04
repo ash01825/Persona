@@ -78,49 +78,56 @@ VALID_RELATIONSHIP_TYPES = {
     "supports", "contradicts", "evolved_from", "influenced_by", "created",
 }
 
-EXTRACTION_SYSTEM_PROMPT = """You are a top-tier entity extraction algorithm designed to build an intellectual knowledge graph for {person_name}.
+EXTRACTION_SYSTEM_PROMPT = """You are a highly advanced AI archivist designed to build an intellectual knowledge graph for {person_name}.
 Your task is to extract Nodes (entities) and Edges (relationships) from the provided text.
-Extract ONLY what is clearly stated in THIS specific passage. Do not infer or guess outside knowledge.
+
+CRITICAL QUALITY CONTROL - DO NOT EXTRACT NOISE:
+The text you are reading is often scraped from websites, digital archives, and raw OCR'd documents. 
+You MUST IGNORE digital noise. DO NOT extract entities from:
+- Website navigation menus, UI elements, or footers (e.g., "Home", "Book Sources", "Pics", "Click Here", "Contact Us")
+- Image captions, metadata, or copyright notices.
+- Generic words or broad, meaningless categories.
+
+ONLY extract an entity if it represents a profound historical truth, a verified scientific concept, a deeply held personal belief, or a literal, historical artifact/creation. If the text is just a table of contents or a website menu, RETURN NOTHING.
 
 # 1. Extracting Nodes
 Identify the following types of entities using their EXACT field names:
 
-concepts — Ideas, theories, intellectual constructs, or topics explicitly discussed.
-  FIELDS: name (the concept's human-readable name), description (what it is), domain (optional, e.g. "physics")
+concepts — Profound ideas, theories, intellectual constructs, or philosophies explicitly discussed.
+  FIELDS: name (the concept's human-readable name), description (what it is), domain (optional, e.g. "physics", "philosophy")
   Example: {{"name": "Alternating Current", "description": "Electric current that periodically reverses direction", "domain": "electrical engineering"}}
 
-beliefs — Personal convictions, values, or strongly held stances the person expresses.
-  FIELDS: name (a short summary of the belief, e.g. "Wireless Energy is Inevitable"), description (the complete detailed sentence expressing the belief)
+beliefs — Deep personal convictions, values, or strongly held stances the person expresses.
+  FIELDS: name (a short summary of the belief), description (the complete detailed sentence expressing the belief)
   Example: {{"name": "AC Superiority", "description": "Tesla believed AC was superior to DC for long-distance transmission"}}
 
-creations — Books, patents, companies, algorithms, or artworks explicitly mentioned.
-  FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company", "power plant", "project"), description (what it is/was)
-  Example: {{"name": "Wardenclyffe Tower", "creation_type": "project", "description": "Unfinished wireless transmission station"}}
+creations — Actual historical artifacts: published books, registered patents, founded companies, specific algorithms, or completed artworks.
+  FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company", "formula"), description (what it is/was)
+  Example: {{"name": "Wardenclyffe Tower", "creation_type": "facility", "description": "Unfinished wireless transmission station"}}
 
-people — Other individuals mentioned (include their name and role relative to {person_name}).
-  FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "employer", "rival", "mentor")
+people — Historical individuals explicitly mentioned as interacting with or influencing {person_name}.
+  FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "rival", "mentor")
 
-findings — Specific research results, discoveries, or empirical observations.
+findings — Specific, verified research results, empirical discoveries, or mathematical proofs.
   FIELDS: name (a short title of the finding), description (the finding itself as a complete sentence describing what was discovered)
 
-Use the most complete human-readable name for every entity (e.g., "Alternating Current", not "Current").
+Use the most complete, academically rigorous name for every entity.
 
 # 2. Extracting Edges (Relationships)
-For EVERY pair of related entities you extracted, create a relationship. A dense knowledge graph is the goal. Look for:
+For EVERY pair of related entities you extracted, create a relationship. Look for profound historical connections:
 - Comparison or contrast between concepts → "contradicts" or "supports"
-- One person or concept influencing another → "influenced_by"
-- A person making or building something → "created"
-- A belief or concept developing from an earlier one → "evolved_from"
-- Evidence or proof relationships → "supports"
+- One person or concept directly influencing another → "influenced_by"
+- A person historically authoring/building something → "created"
+- A belief or theory mathematically/philosophically developing from an earlier one → "evolved_from"
 
 Valid relationship_type values:
 - "supports": A concept or belief provides evidence or support for another.
 - "contradicts": Two concepts, beliefs, or people directly conflict or oppose each other.
 - "evolved_from": A belief or concept grew out of an earlier one.
 - "influenced_by": A person or concept was influenced by another person or concept.
-- "created": A person created a specific creation or concept.
+- "created": A person authored, invented, or founded a specific creation or concept.
 
-Extract ALL relationships that are clearly stated in the passage. Do not hold back. If 5 entities are connected, extract 5 relationships. Quality AND completeness matter."""
+Extract ALL valid relationships clearly stated in the passage. Quality AND completeness matter, but remember: if the source text contains no historical value, extract NOTHING."""
 
 
 async def extract_from_chunk(

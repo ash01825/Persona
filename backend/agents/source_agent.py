@@ -1,13 +1,17 @@
 """
-Source Gathering Agent.
+Recursive Source Gathering Agent.
 
-Orchestrates web search and scraping to find primary sources for a person.
-Uses Tavily API for search and Crawl4AI for clean markdown extraction.
+Uses a Breadth-First Search (BFS) architecture to search Tavily,
+scrape with Firecrawl, and autonomously follow valuable citations/links
+found in the text.
 """
 import os
+import json
 import asyncio
+import re
 import structlog
-from typing import List, Dict
+from typing import List, Dict, Set
+from collections import deque
 
 from tavily import AsyncTavilyClient
 from firecrawl import FirecrawlApp
@@ -17,8 +21,6 @@ from cognee_layer.chunker import chunk_document
 
 logger = structlog.get_logger()
 
-# Configure litellm to use Gemini
-# Ensure GEMINI_API_KEY is available in the environment
 os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY", "")
 
 class SourceGatheringAgent:
@@ -26,38 +28,48 @@ class SourceGatheringAgent:
         self.tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY", ""))
         self.firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY", ""))
 
-    async def gather_sources(self, person_name: str, max_sources: int = 3) -> List[Dict[str, str]]:
-        """
-        1. Search Tavily for primary sources.
-        2. Scrape the URLs with Crawl4AI.
-        3. Use LLM to verify it is a primary source.
-        Returns a list of dicts: {"title": str, "content": str, "url": str, "source_type": str}
-        """
-        logger.info(f"Starting source gathering for {person_name}")
+    def extract_links(self, markdown_content: str) -> List[str]:
+        """Extract all absolute http/https links from markdown content."""
+        links = re.findall(r'\[.*?\]\((https?://[^\)]+)\)', markdown_content)
+        # Filter out obvious junk
+        valid_links = []
+        for link in links:
+            if any(junk in link.lower() for junk in ['facebook.com', 'twitter.com', 'instagram.com', 'login', 'signup']):
+                continue
+            valid_links.append(link)
+        return list(set(valid_links))
+
+    async def gather_sources(self, person_name: str, query: str, max_sources: int = 3):
+        logger.info(f"Starting RECURSIVE source gathering for {person_name}")
         
-        # 1. Search Web
-        query = f"{person_name} original papers letters primary sources text"
+        # 1. Initial Search
         logger.info(f"Searching Tavily with query: {query}")
         
         try:
             search_result = await self.tavily_client.search(query, search_depth="advanced", max_results=10)
         except Exception as e:
             logger.error(f"Tavily search failed: {e}")
-            return []
+            return
             
-        urls_to_scrape = [result["url"] for result in search_result.get("results", [])]
-        logger.info(f"Found {len(urls_to_scrape)} potential URLs.")
+        initial_urls = [result["url"] for result in search_result.get("results", [])]
         
-        valid_sources = []
+        # 2. Setup BFS Queue
+        queue = deque(initial_urls)
+        visited: Set[str] = set()
+        sources_found = 0
         
-        # 2. Scrape and Evaluate
-        for url in urls_to_scrape:
-            if len(valid_sources) >= max_sources:
-                break
+        logger.info(f"Initialized queue with {len(queue)} URLs.")
+        
+        while queue and sources_found < max_sources:
+            url = queue.popleft()
+            if url in visited:
+                continue
                 
-            logger.info(f"Scraping {url}...")
+            visited.add(url)
+            logger.info(f"Scraping (Queue: {len(queue)}): {url}")
+            
             try:
-                # Run sync Firecrawl client in a background thread
+                # Firecrawl is synchronous, run in thread
                 result = await asyncio.to_thread(
                     self.firecrawl.scrape_url, 
                     url, 
@@ -70,58 +82,76 @@ class SourceGatheringAgent:
             except Exception as e:
                 logger.warning(f"Failed to scrape {url}: {e}")
                 continue
-                    
+                
             if not markdown_content or len(markdown_content) < 500:
                 logger.debug(f"Skipping {url}: Too short.")
                 continue
                 
-            # 3. Verify primary source using LLM
-            prompt = f"""You are an expert archivist. 
-We are looking for primary sources written BY {person_name}. 
-Evaluate the following text and determine if it is a primary source (e.g. an original letter, patent, book, or paper written by them).
-If it is a secondary source (like a Wikipedia article, a biography written by someone else, or a blog post about them), reject it.
+            # Extract links from the page to pass to LLM
+            page_links = self.extract_links(markdown_content)[:30] # Top 30 links
+                
+            # 3. LLM Evaluator (JSON output)
+            prompt = f"""You are a brilliant historical researcher building a Knowledge Graph about {person_name}.
+Evaluate the following scraped webpage text. 
 
-Respond with ONLY the word "YES" if it is a primary source, or "NO" if it is a secondary source.
+1. Does this text contain rich, detailed historical information, original writings, or direct quotes by {person_name}? 
+It is OK if it is a high-quality biography, a university archive page, or an article, AS LONG AS it contains substantial, extractable text about their ideas and life.
+2. Look at the provided list of hyperlinks found on this page. Are there any links that likely point to original PDFs, archives, or primary sources?
 
-Text snippet (first 2000 chars):
-{markdown_content[:2000]}
+Respond ONLY with a valid JSON object in this exact format:
+{{
+    "is_valuable": true or false,
+    "reason": "short explanation",
+    "links_to_follow": ["url1", "url2"]
+}}
+
+Links found on page:
+{page_links}
+
+Text snippet (first 4000 chars):
+{markdown_content[:4000]}
 """
             try:
                 response = litellm.completion(
-                    model="gemini/gemini-2.5-flash",
-                    messages=[{"role": "user", "content": prompt}]
+                    model="gemini/gemini-3.1-flash-lite",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={ "type": "json_object" }
                 )
-                decision = response.choices[0].message.content.strip().upper()
+                raw_json = response.choices[0].message.content.strip()
+                # Clean up if model wrapped in markdown code blocks
+                if raw_json.startswith("```json"):
+                    raw_json = raw_json[7:-3].strip()
+                elif raw_json.startswith("```"):
+                    raw_json = raw_json[3:-3].strip()
+                    
+                decision = json.loads(raw_json)
             except Exception as e:
-                logger.warning(f"LLM verification failed for {url}: {e}")
+                logger.warning(f"LLM JSON verification failed for {url}: {e}")
+                # Sleep and continue
+                await asyncio.sleep(4)
                 continue
                 
-            if "YES" in decision:
-                logger.info(f"✅ LLM accepted {url} as primary source.")
-                valid_sources.append({
+            if decision.get("is_valuable"):
+                logger.info(f"✅ LLM ACCEPTED {url}: {decision.get('reason')}")
+                sources_found += 1
+                yield {
                     "title": url.split("/")[-1] or url,
                     "content": markdown_content,
                     "url": url,
                     "source_type": "web_article"
-                })
+                }
             else:
-                logger.info(f"❌ LLM rejected {url} (Secondary source).")
-                    
-        return valid_sources
-
-    async def gather_and_chunk(self, person_name: str, max_sources: int = 3) -> List[Dict]:
-        """Full pipeline: gather -> chunk"""
-        sources = await self.gather_sources(person_name, max_sources)
-        
-        all_chunks = []
-        for source in sources:
-            chunks = chunk_document(
-                text=source["content"],
-                title=source["title"],
-                source_type=source["source_type"],
-                person_name=person_name
-            )
-            all_chunks.extend(chunks)
-            
-        logger.info(f"Produced {len(all_chunks)} chunks for {person_name}")
-        return all_chunks
+                logger.info(f"❌ LLM REJECTED {url}: {decision.get('reason')}")
+                
+            # Append new links to queue
+            new_links = decision.get("links_to_follow", [])
+            added_count = 0
+            for link in new_links:
+                if link not in visited and link not in queue:
+                    queue.append(link)
+                    added_count += 1
+            if added_count > 0:
+                logger.info(f"➕ Added {added_count} new citation links to queue.")
+                
+            # Sleep to avoid LLM rate limits
+            await asyncio.sleep(4)

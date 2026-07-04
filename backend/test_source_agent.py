@@ -6,7 +6,10 @@ Run: cd backend && python test_source_agent.py
 """
 import os
 import asyncio
+import warnings
 from dotenv import load_dotenv
+
+warnings.filterwarnings("ignore")
 
 from agents.source_agent import SourceGatheringAgent
 
@@ -20,21 +23,24 @@ async def main():
     print("Initializing Source Gathering Agent...")
     agent = SourceGatheringAgent()
     
-    print("\nStarting gather_and_chunk for 'Albert Einstein' (Targeting 2 primary sources)...")
-    chunks = await agent.gather_and_chunk("Albert Einstein", max_sources=2)
+    print("\nStarting gather_and_chunk for 'Albert Einstein' (Targeting 10 primary sources)...")
+    chunks = await agent.gather_and_chunk("Albert Einstein", max_sources=10)
     
     print(f"\n✓ Agent returned {len(chunks)} chunks!")
     
     if chunks:
+        # Save to JSON for analysis
+        output_path = "/Users/ash/Desktop/30June/backend/einstein_test_chunks.json"
+        import json
+        with open(output_path, "w") as f:
+            json.dump(chunks, f, indent=2)
+        print(f"\nSaved all chunks to {output_path} for analysis.")
+        
         sample = chunks[0]
-        print("\nSample Chunk:")
+        print("\nSample Chunk Preview:")
         print(f"Title: {sample['source_title']}")
         print(f"Type: {sample['source_type']}")
         print(f"Length: {len(sample['content'])} characters")
-        print("\nPreview:")
-        print("-" * 40)
-        print(sample['content'][:500] + "...")
-        print("-" * 40)
     else:
         print("✗ No chunks produced.")
 
