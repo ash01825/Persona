@@ -27,10 +27,15 @@ The graph is the product. The chat is a feature.
 |---|---|
 | Frontend | Next.js 15, TypeScript, Tailwind CSS v4, Framer Motion |
 | Graph Visualization | react-force-graph (2D / 3D) |
-| Backend | Python 3.12, FastAPI |
-| Memory Engine | [Cognee](https://github.com/topoteretes/cognee) |
+| Backend | Python 3.13 (conda), FastAPI |
+| Memory Engine | [Cognee](https://github.com/topoteretes/cognee) 1.2.2 |
+| LLM Extraction | Google Gemini (via LiteLLM) |
+| Embeddings | Jina AI embeddings-v4 (OpenAI-compatible, 2048 dims) |
+| Vector Store | pgvector (PostgreSQL 16) |
+| Graph Store | Neo4j 5 (APOC + GDS plugins) |
+| Relational Store | PostgreSQL (same instance as pgvector) |
+| Structured Output | instructor (json_mode for Gemini) |
 | Real-time | python-socketio + socket.io-client |
-| Database | PostgreSQL |
 | MCP | mcp Python SDK |
 
 ---
@@ -39,74 +44,137 @@ The graph is the product. The chat is a feature.
 
 ```
 persona/
-├── frontend/          # Next.js 15 app
+├── frontend/               # Next.js 15 app
 │   ├── app/
-│   │   ├── (marketing)/   # Landing page, blog
-│   │   └── (app)/         # Mind gallery, explorer, compare, build
-│   ├── components/        # graph/, chat/, timeline/, landing/, ui/
-│   └── lib/               # api.ts, socket.ts, types.ts
+│   │   ├── (marketing)/    # Landing page, blog
+│   │   └── (app)/          # Mind gallery, explorer, compare, build
+│   ├── components/         # graph/, chat/, timeline/, landing/, ui/
+│   └── lib/                # api.ts, socket.ts, types.ts
 │
-├── backend/           # FastAPI app
-│   ├── api/               # Route handlers (minds, chat, compare, build)
-│   ├── agents/            # Source gathering, reasoning, insight agents
-│   ├── cognee_layer/      # Ontology, pipeline, query, analytics
-│   ├── sources/           # Source providers (gutenberg, patents, youtube, etc.)
-│   ├── services/          # Business logic
-│   ├── mcp_server/        # MCP server + tools
-│   └── models/            # Pydantic schemas
+├── backend/                # FastAPI app
+│   ├── api/                # Route handlers (minds, chat, compare, build)
+│   ├── agents/             # Source gathering, reasoning, insight agents
+│   ├── cognee_layer/       # Ontology, pipeline, query, graph analytics
+│   ├── sources/            # Source providers (gutenberg, internet_archive, youtube)
+│   ├── services/           # Business logic (stubs)
+│   ├── mcp_server/         # MCP server + tools (stub)
+│   └── models/             # Pydantic schemas
 │
-├── data/              # Pre-curated source documents for flagship minds
+├── data/                   # Pre-curated source documents for flagship minds
 │   ├── tesla/
 │   ├── einstein/
 │   └── ...
 │
-└── docker-compose.yml
+└── docker-compose.yml      # PostgreSQL (pgvector) + Neo4j
 ```
+
+---
+
+## How the Extraction Works
+
+```
+Text chunk (~800 tokens)
+        ↓
+Gemini LLM (structured output)
+        ↓
+Extracts: Concepts, Beliefs, Creations, People, Findings
+  + Edges: supports, contradicts, evolved_from, influenced_by, created
+        ↓
+add_data_points() → Cognee stores:
+  • Nodes + Edges → Neo4j (graph store)
+  • Embeddings → pgvector (semantic search)
+  • Metadata → PostgreSQL (relational)
+        ↓
+Dedup() merges same entities across chunks → one Neo4j node
+Louvain clustering (GDS) → Theme nodes (programmatic, not LLM)
+```
+
+**8 Node Types**: Concept, Belief, Creation, Finding, Person, Institution, SourceFragment, Theme
+
+**6 Edge Types**: supports, contradicts, evolved_from, influenced_by, created, belongs_to_theme
 
 ---
 
 ## Getting Started
 
-> **Note:** Setup instructions will be finalized as the stack is confirmed during Week 1.
-
 ### Prerequisites
-- Node.js 20+
-- Python 3.12+
-- PostgreSQL
-- A Cognee-compatible LLM API key (OpenAI / Anthropic / Groq)
+- Docker (for PostgreSQL + Neo4j)
+- Conda (for Python 3.13 environment)
+- Google Gemini API key (AI Studio)
+- Jina AI API key (for embeddings)
+- Node.js 20+ (for frontend)
 
-### Development
+### Backend Setup
 
 ```bash
-# Frontend
-cd frontend
-npm install
-npm run dev
+# Create conda environment
+conda create -n persona python=3.13
+conda activate persona
 
-# Backend
+# Install dependencies
 cd backend
-python -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload
 
-# MCP Server (separate process)
-python -m mcp_server.server
+# Copy and fill in API keys
+cp .env.example .env
+# Edit .env with your Gemini and Jina API keys
+
+# Start Docker services
+cd ..
+docker compose up -d
+
+# Run the proof-of-concept test
+cd backend
+COGNEE_SKIP_CONNECTION_TEST=true python test_cognee_poc.py
 ```
+
+### Expected Test Output
+
+```
+✓ Cognee initialized
+✓ Ingestion complete (10 DataPoints extracted and stored)
+✓ Query returned 1 results
+  → Tesla believed that wireless energy transmission... was inevitable
+```
+
+### Neo4j Browser
+- URL: `http://localhost:7474`
+- Username: `neo4j`
+- Password: `persona1`
+
+### Dev Clean Reset
+
+```bash
+docker compose down -v
+docker compose up -d
+rm -rf /opt/anaconda3/envs/persona/lib/python3.13/site-packages/cognee/.cognee_system/databases
+```
+
+---
+
+## API Endpoints (Stubs in Progress)
+
+| Method | Path | Status |
+|---|---|---|
+| GET | `/api/minds` | Stub (returns `[]`) |
+| GET | `/api/minds/{id}` | Stub |
+| GET | `/api/minds/{id}/graph` | Stub |
+| POST | `/api/chat` | Stub |
+| POST | `/api/compare` | Stub |
+| POST | `/api/build` | Stub |
 
 ---
 
 ## Status
 
-🚧 **Active development — Week 1**
+🚧 **Week 1 — Dev 1 Complete, Dev 2-4 In Progress**
 
-This project is being built for the Cognee hiring challenge. See [`AGENTS.md`](.agents/AGENTS.md) for architecture decisions and conventions.
+- ✅ Cognee 1.2.2 pipeline: text chunks → LLM extraction → Neo4j + pgvector
+- ✅ Ontology: 8 DataPoint types with 5 edge types
+- ✅ PoC test passes: Tesla chunk extraction + graph search
+- ✅ Docker Compose: PostgreSQL (pgvector) + Neo4j (APOC + GDS)
+- 🚧 Source gathering agents (Gutenberg, Internet Archive)
+- 🚧 Frontend (Next.js 15 scaffold, design system)
+- 🚧 Graph visualization (react-force-graph)
 
----
-
-## Built With
-
-- [Cognee](https://github.com/topoteretes/cognee) — hybrid graph-vector-relational memory engine
-- [react-force-graph](https://github.com/vasturiano/react-force-graph) — graph visualization
-- [FastAPI](https://fastapi.tiangolo.com/) — backend API
-- [Next.js](https://nextjs.org/) — frontend framework
+See `.agents/AGENTS.md` for architecture decisions, conventions, and Cognee 1.2.2 API reference. See `.agents/week1_dev*.md` for individual developer specs.

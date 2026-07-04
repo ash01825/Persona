@@ -39,6 +39,32 @@ class SourceGatheringAgent:
             valid_links.append(link)
         return list(set(valid_links))
 
+    async def _process_document_locally(self, url: str) -> str:
+        """Download and parse a document (PDF, TXT, EPUB, etc.) locally using unstructured."""
+        import httpx
+        import tempfile
+        from unstructured.partition.auto import partition
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, follow_redirects=True)
+            response.raise_for_status()
+            
+        # Write to temporary file
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            tmp_file.write(response.content)
+            tmp_path = tmp_file.name
+            
+        try:
+            # Parse locally using unstructured
+            elements = await asyncio.to_thread(partition, filename=tmp_path)
+            # Combine elements into a single markdown-like string
+            text_content = "\n\n".join([str(el) for el in elements if str(el).strip()])
+            return text_content
+        finally:
+            # Cleanup temp file
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
     async def gather_sources(self, person_name: str, query: str, max_sources: int = 3):
         logger.info(f"Starting RECURSIVE source gathering for {person_name}")
         
@@ -69,16 +95,23 @@ class SourceGatheringAgent:
             logger.info(f"Scraping (Queue: {len(queue)}): {url}")
             
             try:
-                # Firecrawl is synchronous, run in thread
-                result = await asyncio.to_thread(
-                    self.firecrawl.scrape_url, 
-                    url, 
-                    formats=['markdown']
-                )
-                if isinstance(result, dict):
-                    markdown_content = result.get('markdown', '')
+                # Document routing check
+                parsed_url = url.split("?")[0].lower()
+                if parsed_url.endswith(('.pdf', '.txt', '.epub', '.docx', '.csv')):
+                    logger.info(f"📄 Detected document URL, parsing locally (Zero Credits): {url}")
+                    markdown_content = await self._process_document_locally(url)
                 else:
-                    markdown_content = getattr(result, 'markdown', '')
+                    logger.info(f"🌐 Detected Webpage, sending to Firecrawl: {url}")
+                    # Firecrawl is synchronous, run in thread
+                    result = await asyncio.to_thread(
+                        self.firecrawl.scrape_url, 
+                        url, 
+                        formats=['markdown']
+                    )
+                    if isinstance(result, dict):
+                        markdown_content = result.get('markdown', '')
+                    else:
+                        markdown_content = getattr(result, 'markdown', '')
             except Exception as e:
                 logger.warning(f"Failed to scrape {url}: {e}")
                 continue
