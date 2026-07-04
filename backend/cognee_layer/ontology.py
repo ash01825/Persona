@@ -108,6 +108,29 @@ class Institution(DataPoint):
     name: Annotated[str, Dedup(), Embeddable()]
     institution_type: str = ""
 
+    supports: SkipValidation[Any] = []
+    contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
+    influenced_by: SkipValidation[Any] = []
+    created: SkipValidation[Any] = []
+
+
+class BiographicalEvent(DataPoint):
+    """
+    A significant life event that provides temporal context (e.g., marriage, graduation, job change, award, death).
+    """
+
+    name: Annotated[str, Dedup(), Embeddable()]
+    description: Annotated[str, Embeddable()]
+    date: str = ""
+    location: str = ""
+
+    supports: SkipValidation[Any] = []
+    contradicts: SkipValidation[Any] = []
+    evolved_from: SkipValidation[Any] = []
+    influenced_by: SkipValidation[Any] = []
+    created: SkipValidation[Any] = []
+
 
 class SourceFragment(DataPoint):
     """

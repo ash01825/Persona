@@ -43,7 +43,7 @@ async def run_theme_clustering(mind_id: str) -> list[Theme]:
             await session.run("""
                 CALL gds.graph.project(
                     $graph_name,
-                    ['Concept', 'Belief', 'Creation', 'Finding', 'Person'],
+                    ['Concept', 'Belief', 'Creation', 'Finding', 'Person', 'Institution', 'BiographicalEvent'],
                     {
                         supports: {orientation: 'UNDIRECTED'},
                         contradicts: {orientation: 'UNDIRECTED'},

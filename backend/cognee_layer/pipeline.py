@@ -16,7 +16,7 @@ from cognee.tasks.storage import add_data_points
 from pydantic import BaseModel
 
 from cognee_layer.ontology import (
-    Concept, Belief, Creation, Finding, Person, SourceFragment,
+    Concept, Belief, Creation, Finding, Person, SourceFragment, Institution, BiographicalEvent
 )
 
 logger = structlog.get_logger()
@@ -56,6 +56,20 @@ class _ExtractedFinding(BaseModel):
     description: str
 
 
+class _ExtractedInstitution(BaseModel):
+    """LLM output for an institution or organization."""
+    name: str
+    institution_type: str = ""
+
+
+class _ExtractedEvent(BaseModel):
+    """LLM output for a biographical event."""
+    name: str
+    description: str
+    date: str = ""
+    location: str = ""
+
+
 class _ExtractedRelationship(BaseModel):
     """LLM output for an edge between two extracted entities."""
     source_name: str
@@ -71,6 +85,8 @@ class ChunkExtractions(BaseModel):
     creations: list[_ExtractedCreation] = []
     people: list[_ExtractedPerson] = []
     findings: list[_ExtractedFinding] = []
+    institutions: list[_ExtractedInstitution] = []
+    events: list[_ExtractedEvent] = []
     relationships: list[_ExtractedRelationship] = []
 
 
@@ -105,11 +121,17 @@ creations — Actual historical artifacts: published books, registered patents, 
   FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company", "formula"), description (what it is/was)
   Example: {{"name": "Wardenclyffe Tower", "creation_type": "facility", "description": "Unfinished wireless transmission station"}}
 
-people — Historical individuals explicitly mentioned as interacting with or influencing {person_name}.
-  FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "rival", "mentor")
+people — Historical or modern individuals explicitly mentioned as interacting with or influencing {person_name}.
+  FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "rival", "mentor", "family")
 
 findings — Specific, verified research results, empirical discoveries, or mathematical proofs.
   FIELDS: name (a short title of the finding), description (the finding itself as a complete sentence describing what was discovered)
+
+institutions — Organizations, companies, universities, or groups the person interacted with or founded.
+  FIELDS: name, institution_type (e.g. "university", "company", "non-profit", "band")
+
+events — Significant biographical or historical events in the person's life (e.g., births, marriages, job changes, awards, relocations).
+  FIELDS: name (short title of the event), description, date (if mentioned), location (if mentioned)
 
 Use the most complete, academically rigorous name for every entity.
 
@@ -186,6 +208,8 @@ async def extract_from_chunk(
             creations=len(extracted.creations),
             people=len(extracted.people),
             findings=len(extracted.findings),
+            institutions=len(extracted.institutions),
+            events=len(extracted.events),
             relationships=len(extracted.relationships),
             raw_relationships=[
                 f"{r.source_name} -> {r.target_name} ({r.relationship_type})"
@@ -225,6 +249,21 @@ async def extract_from_chunk(
             node = Finding(name=f.name, description=f.description)
             datapoints.append(node)
             node_map[f.name.lower()] = node
+
+        for inst in extracted.institutions:
+            node = Institution(name=inst.name, institution_type=inst.institution_type)
+            datapoints.append(node)
+            node_map[inst.name.lower()] = node
+
+        for ev in extracted.events:
+            node = BiographicalEvent(
+                name=ev.name, 
+                description=ev.description,
+                date=ev.date,
+                location=ev.location
+            )
+            datapoints.append(node)
+            node_map[ev.name.lower()] = node
 
         for rel in extracted.relationships:
             if rel.relationship_type not in VALID_RELATIONSHIP_TYPES:

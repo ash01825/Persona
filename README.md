@@ -89,7 +89,7 @@ Dedup() merges same entities across chunks → one Neo4j node
 Louvain clustering (GDS) → Theme nodes (programmatic, not LLM)
 ```
 
-**8 Node Types**: Concept, Belief, Creation, Finding, Person, Institution, SourceFragment, Theme
+**10 Node Types**: Concept, Belief, Creation, Finding, Person, Institution, BiographicalEvent, SourceFragment, Theme
 
 **6 Edge Types**: supports, contradicts, evolved_from, influenced_by, created, belongs_to_theme
 
