@@ -35,6 +35,7 @@ class Concept(DataPoint):
     evolved_from: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     created: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class Belief(DataPoint):
@@ -51,6 +52,7 @@ class Belief(DataPoint):
     evolved_from: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     created: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class Creation(DataPoint):
@@ -67,6 +69,7 @@ class Creation(DataPoint):
     evolved_from: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     created: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class Finding(DataPoint):
@@ -83,6 +86,7 @@ class Finding(DataPoint):
     evolved_from: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     created: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class Person(DataPoint):
@@ -98,6 +102,7 @@ class Person(DataPoint):
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
     evolved_from: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class Institution(DataPoint):
@@ -113,6 +118,7 @@ class Institution(DataPoint):
     evolved_from: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     created: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class BiographicalEvent(DataPoint):
@@ -130,6 +136,7 @@ class BiographicalEvent(DataPoint):
     evolved_from: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     created: SkipValidation[Any] = []
+    extracted_from: SkipValidation[Any] = []
 
 
 class SourceFragment(DataPoint):

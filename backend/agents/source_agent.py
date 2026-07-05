@@ -162,7 +162,7 @@ Text snippet (first 4000 chars):
             except Exception as e:
                 logger.warning(f"LLM JSON verification failed for {url}: {e}")
                 # Sleep and continue
-                await asyncio.sleep(4)
+                await asyncio.sleep(0.5)
                 continue
                 
             if decision.get("relevance_score", 0) >= 50:
@@ -189,4 +189,4 @@ Text snippet (first 4000 chars):
                 logger.info(f"➕ Added {added_count} new citation links to queue.")
                 
             # Sleep to avoid LLM rate limits
-            await asyncio.sleep(4)
+            await asyncio.sleep(0.5)

@@ -43,8 +43,12 @@ async def get_graph(mind_id: str) -> GraphDataResponse:
             # Get nodes
             result = await session.run("""
                 MATCH (n)
-                WHERE NOT "Theme" IN labels(n) AND NOT "SourceFragment" IN labels(n)
-                RETURN elementId(n) as id, [l IN labels(n) WHERE l <> 'DataPoint' AND l <> '__Node__'][0] as type, n.name as label, n.description as description
+                WHERE NOT "SourceFragment" IN labels(n)
+                  AND EXISTS { (n)--() }
+                RETURN elementId(n) as id, 
+                       [l IN labels(n) WHERE l <> 'DataPoint' AND l <> '__Node__'][0] as type, 
+                       n.name as label, 
+                       COALESCE(n.description, n.role, n.domain, n.institution_type, "") as description
             """)
             node_records = await result.data()
             
@@ -61,8 +65,8 @@ async def get_graph(mind_id: str) -> GraphDataResponse:
             # Get edges
             result = await session.run("""
                 MATCH (n)-[r]->(m)
-                WHERE NOT "Theme" IN labels(n) AND NOT "SourceFragment" IN labels(n)
-                  AND NOT "Theme" IN labels(m) AND NOT "SourceFragment" IN labels(m)
+                WHERE NOT "SourceFragment" IN labels(n)
+                  AND NOT "SourceFragment" IN labels(m)
                 RETURN elementId(n) as source, elementId(m) as target, type(r) as type
             """)
             edge_records = await result.data()

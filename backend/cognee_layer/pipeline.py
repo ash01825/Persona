@@ -21,8 +21,7 @@ from cognee_layer.ontology import (
 
 logger = structlog.get_logger()
 
-GEMINI_RATE_LIMIT_SLEEP = 8.0
-
+GEMINI_RATE_LIMIT_SLEEP = 0.2
 
 class _ExtractedConcept(BaseModel):
     """LLM output for a concept."""
@@ -94,63 +93,47 @@ VALID_RELATIONSHIP_TYPES = {
     "supports", "contradicts", "evolved_from", "influenced_by", "created",
 }
 
-EXTRACTION_SYSTEM_PROMPT = """You are a highly advanced AI archivist designed to build an intellectual knowledge graph for {person_name}.
+EXTRACTION_SYSTEM_PROMPT = """You are a highly advanced AI archivist designed to build an intellectual and personal knowledge graph for {person_name}.
 Your task is to extract Nodes (entities) and Edges (relationships) from the provided text.
 
 CRITICAL QUALITY CONTROL - DO NOT EXTRACT NOISE:
-The text you are reading is often scraped from websites, digital archives, and raw OCR'd documents. 
-You MUST IGNORE digital noise. DO NOT extract entities from:
-- Website navigation menus, UI elements, or footers (e.g., "Home", "Book Sources", "Pics", "Click Here", "Contact Us")
-- Image captions, metadata, or copyright notices.
-- Generic words or broad, meaningless categories.
+You MUST IGNORE digital noise like website navigation menus, footers, or copyright notices.
 
-ONLY extract an entity if it represents a profound historical truth, a verified scientific concept, a deeply held personal belief, or a literal, historical artifact/creation. If the text is just a table of contents or a website menu, RETURN NOTHING.
+However, you MUST extract EVERYTHING related to {person_name}'s actual life, including mundane details, daily routines, random opinions, pets, favorite foods, as well as their deep philosophical or scientific work. Map these human details into the following classes:
 
 # 1. Extracting Nodes
 Identify the following types of entities using their EXACT field names:
 
-concepts — Profound ideas, theories, intellectual constructs, or philosophies explicitly discussed.
-  FIELDS: name (the concept's human-readable name), description (what it is), domain (optional, e.g. "physics", "philosophy")
-  Example: {{"name": "Alternating Current", "description": "Electric current that periodically reverses direction", "domain": "electrical engineering"}}
+concepts — Ideas, theories, techniques, or abstract things they discussed. (e.g. "Alternating Current", "Veganism")
+  FIELDS: name (human-readable name), description (what it is), domain (optional)
 
-beliefs — Deep personal convictions, values, or strongly held stances the person expresses.
-  FIELDS: name (a short summary of the belief), description (the complete detailed sentence expressing the belief)
-  Example: {{"name": "AC Superiority", "description": "Tesla believed AC was superior to DC for long-distance transmission"}}
+beliefs — Personal convictions, values, opinions, OR daily habits/routines. (e.g. "Sleep Schedule: Slept only 2 hours", "Opinion on Dogs: Loved pigeons and dogs")
+  FIELDS: name (short summary), description (complete detailed sentence)
 
-creations — Actual historical artifacts: published books, registered patents, founded companies, specific algorithms, or completed artworks.
-  FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company", "formula"), description (what it is/was)
-  Example: {{"name": "Wardenclyffe Tower", "creation_type": "facility", "description": "Unfinished wireless transmission station"}}
+creations — Actual historical artifacts: published books, patents, companies, artworks.
+  FIELDS: name (the creation's name), creation_type (e.g. "book", "patent", "company"), description (what it is/was)
 
-people — Historical or modern individuals explicitly mentioned as interacting with or influencing {person_name}.
-  FIELDS: name (full name), role (how they relate to {person_name}, e.g. "collaborator", "rival", "mentor", "family")
+people — Individuals (or pets/animals) interacting with {person_name}.
+  FIELDS: name (full name), role (e.g. "collaborator", "rival", "pet", "family")
 
-findings — Specific, verified research results, empirical discoveries, or mathematical proofs.
-  FIELDS: name (a short title of the finding), description (the finding itself as a complete sentence describing what was discovered)
+findings — Specific, verified research results or empirical discoveries.
+  FIELDS: name (short title), description (complete sentence describing it)
 
-institutions — Organizations, companies, universities, or groups the person interacted with or founded.
-  FIELDS: name, institution_type (e.g. "university", "company", "non-profit", "band")
+institutions — Organizations, companies, universities, or groups.
+  FIELDS: name, institution_type (e.g. "university", "company")
 
-events — Significant biographical or historical events in the person's life (e.g., births, marriages, job changes, awards, relocations).
-  FIELDS: name (short title of the event), description, date (if mentioned), location (if mentioned)
-
-Use the most complete, academically rigorous name for every entity.
+events — Biographical or historical events in their life.
+  FIELDS: name (short title), description, date (if mentioned), location (if mentioned)
 
 # 2. Extracting Edges (Relationships)
-For EVERY pair of related entities you extracted, create a relationship. Look for profound historical connections:
-- Comparison or contrast between concepts → "contradicts" or "supports"
-- One person or concept directly influencing another → "influenced_by"
-- A person historically authoring/building something → "created"
-- A belief or theory mathematically/philosophically developing from an earlier one → "evolved_from"
-
-Valid relationship_type values:
+For EVERY pair of related entities you extracted, create a relationship:
 - "supports": A concept or belief provides evidence or support for another.
-- "contradicts": Two concepts, beliefs, or people directly conflict or oppose each other.
+- "contradicts": Two concepts, beliefs, or people directly conflict.
 - "evolved_from": A belief or concept grew out of an earlier one.
-- "influenced_by": A person or concept was influenced by another person or concept.
-- "created": A person authored, invented, or founded a specific creation or concept.
+- "influenced_by": A person or concept was influenced by another.
+- "created": A person authored, invented, or founded a creation or concept.
 
-Extract ALL valid relationships clearly stated in the passage. Quality AND completeness matter, but remember: if the source text contains no historical value, extract NOTHING."""
-
+Extract ALL valid relationships clearly stated in the passage."""
 
 async def extract_from_chunk(
     chunk_data: list[dict],
@@ -223,11 +206,13 @@ async def extract_from_chunk(
                 description=c.description,
                 domain=c.domain,
             )
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[c.name.lower()] = node
 
         for b in extracted.beliefs:
             node = Belief(name=b.name, description=b.description)
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[b.name.lower()] = node
 
@@ -237,21 +222,25 @@ async def extract_from_chunk(
                 creation_type=cr.creation_type,
                 description=cr.description,
             )
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[cr.name.lower()] = node
 
         for p in extracted.people:
             node = Person(name=p.name, role=p.role)
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[p.name.lower()] = node
 
         for f in extracted.findings:
             node = Finding(name=f.name, description=f.description)
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[f.name.lower()] = node
 
         for inst in extracted.institutions:
             node = Institution(name=inst.name, institution_type=inst.institution_type)
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[inst.name.lower()] = node
 
@@ -262,6 +251,7 @@ async def extract_from_chunk(
                 date=ev.date,
                 location=ev.location
             )
+            node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[ev.name.lower()] = node
 
