@@ -1,112 +1,34 @@
 "use client";
 
-import { useRef, useState, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Html, ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { motion } from "framer-motion";
-import * as THREE from "three";
+import Link from "next/link";
+import Image from "next/image";
 
-// The Thinker data
 const thinkers = [
-  { id: 1, name: "Nikola Tesla", hook: "Father of the electric age", topics: ["AC Power", "Free Energy"], color: "#22d3ee" },
-  { id: 2, name: "Albert Einstein", hook: "He bent spacetime with a thought", topics: ["Relativity", "Quantum"], color: "#a855f7" },
-  { id: 3, name: "Ada Lovelace", hook: "First programmer, a century early", topics: ["Algorithms", "Vision"], color: "#3b82f6" },
-  { id: 4, name: "Marie Curie", hook: "She discovered what no one imagined", topics: ["Radioactivity", "Resilience"], color: "#10b981" },
-  { id: 5, name: "Friedrich Nietzsche", hook: "He asked the questions nobody wanted", topics: ["Will to Power", "Nihilism"], color: "#f59e0b" },
+  { 
+    id: "einstein", 
+    name: "Albert Einstein",
+    lastName: "EINSTEIN", 
+    hook: "He bent spacetime with a thought.", 
+    topics: ["Relativity", "Quantum", "Cosmology"],
+    image: "/images/einstein.jpg" 
+  },
+  { 
+    id: "tesla", 
+    name: "Nikola Tesla",
+    lastName: "TESLA", 
+    hook: "The father of the electric age.", 
+    topics: ["AC Power", "Free Energy", "Invention"],
+    image: "/images/tesla.jpg" 
+  },
 ];
-
-function ThinkerDisc({ data, position, onClick }: { data: any; position: [number, number, number]; onClick: () => void }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      // Smoothly rotate towards camera if hovered
-      const targetRotation = hovered ? 0 : Math.sin(state.clock.elapsedTime + data.id) * 0.1;
-      meshRef.current.rotation.y = THREE.MathUtils.lerp(meshRef.current.rotation.y, targetRotation, 0.1);
-      
-      // Scale effect
-      const targetScale = hovered ? 1.2 : 1;
-      meshRef.current.scale.setScalar(THREE.MathUtils.lerp(meshRef.current.scale.x, targetScale, 0.1));
-    }
-  });
-
-  return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={1} floatingRange={[-0.2, 0.2]}>
-      <mesh
-        ref={meshRef}
-        position={position}
-        onPointerOver={() => {
-          setHovered(true);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-          document.body.style.cursor = "auto";
-        }}
-        onClick={onClick}
-      >
-        <circleGeometry args={[1.5, 64]} />
-        <meshBasicMaterial 
-          color={hovered ? data.color : "#1f1f1f"} 
-          transparent 
-          opacity={hovered ? 0.9 : 0.6}
-          side={THREE.DoubleSide} 
-        />
-        
-        {/* HTML Overlay for the text inside the 3D space */}
-        <Html transform zIndexRange={[100, 0]} position={[0, 0, 0.1]} distanceFactor={10}>
-          <div className={`flex flex-col items-center justify-center p-4 rounded-full w-48 h-48 transition-all duration-300 ${hovered ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
-            <h3 className="font-display text-xl font-bold text-white text-center mb-1 drop-shadow-md">{data.name}</h3>
-            <p className="text-[10px] text-white/80 text-center mb-3 leading-tight">{data.hook}</p>
-            <div className="flex gap-1 flex-wrap justify-center">
-              {data.topics.map((t: string) => (
-                <span key={t} className="text-[8px] bg-black/40 px-2 py-0.5 rounded-full border border-white/20 text-white">
-                  {t}
-                </span>
-              ))}
-            </div>
-            <button className="mt-3 text-[10px] uppercase font-bold bg-white text-black px-3 py-1 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-              Chat →
-            </button>
-          </div>
-        </Html>
-        
-        {/* Default label when not hovered */}
-        {!hovered && (
-          <Html transform zIndexRange={[100, 0]} position={[0, 0, 0.1]} distanceFactor={10}>
-             <div className="text-white/40 font-mono text-sm tracking-widest uppercase pointer-events-none">
-               {data.name.split(" ")[0]}
-             </div>
-          </Html>
-        )}
-      </mesh>
-    </Float>
-  );
-}
-
-function Scene() {
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <Environment preset="city" />
-      <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
-      
-      {/* Position thinkers in a semi-circle/cluster */}
-      <ThinkerDisc data={thinkers[0]} position={[-3.5, 1, -1]} onClick={() => console.log("Clicked", thinkers[0].name)} />
-      <ThinkerDisc data={thinkers[1]} position={[-1.5, -0.5, 1]} onClick={() => console.log("Clicked", thinkers[1].name)} />
-      <ThinkerDisc data={thinkers[2]} position={[0, 1.5, -2]} onClick={() => console.log("Clicked", thinkers[2].name)} />
-      <ThinkerDisc data={thinkers[3]} position={[1.5, 0, 0]} onClick={() => console.log("Clicked", thinkers[3].name)} />
-      <ThinkerDisc data={thinkers[4]} position={[3.5, 1.2, -1]} onClick={() => console.log("Clicked", thinkers[4].name)} />
-    </>
-  );
-}
 
 export function ThinkersSection() {
   return (
     <section id="thinkers" className="relative w-full min-h-screen bg-[#050505] py-24 flex flex-col justify-center overflow-hidden border-t border-white/5">
+      
       {/* Header */}
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 w-full mb-12">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 w-full mb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -118,50 +40,92 @@ export function ThinkersSection() {
             Explore Minds
           </span>
           <h2 className="text-4xl md:text-6xl font-display font-bold tracking-tight text-white mb-6">
-            Speak with the <br className="hidden md:block" /> thinkers who <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">changed everything.</span>
+            Speak with the <br className="hidden md:block" /> thinkers who <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-200 to-neutral-500">changed everything.</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl">
-            Each mind is reconstructed from thousands of primary sources. Ask Tesla about AC power. Ask Nietzsche about nihilism.
+            Each mind is reconstructed from thousands of primary sources. Ask Tesla about AC power. Ask Einstein about relativity.
           </p>
         </motion.div>
       </div>
 
-      {/* 3D Canvas */}
-      <div className="relative w-full h-[60vh] md:h-[70vh] cursor-grab active:cursor-grabbing">
-        <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-          <Scene />
-        </Canvas>
+      {/* Portrait Grid */}
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 w-full flex flex-col md:flex-row gap-12">
         
-        {/* Instructions overlay */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 font-mono text-xs tracking-widest uppercase pointer-events-none">
-          [ Hover to interact ]
-        </div>
-      </div>
+        {thinkers.map((thinker, i) => (
+          <Link href={`/minds/${thinker.id}`} key={thinker.id} className="w-full md:w-1/3">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: i * 0.2 }}
+              className="group relative h-[600px] w-full rounded-[2rem] overflow-hidden bg-[#0a0a0a] border border-white/5 hover:border-white/20 transition-all duration-700 cursor-pointer flex flex-col justify-end"
+            >
+              {/* Massive background text */}
+              <div className="absolute top-10 left-0 w-full overflow-hidden flex justify-center pointer-events-none select-none opacity-20 group-hover:opacity-40 transition-opacity duration-700">
+                <span className="font-display font-bold text-[120px] leading-none text-transparent bg-clip-text bg-gradient-to-b from-white/80 to-transparent tracking-tighter mix-blend-overlay">
+                  {thinker.lastName}
+                </span>
+              </div>
 
-      {/* Build Your Own CTA */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 w-full mt-12">
+              {/* 3D Bust Image */}
+              <div className="absolute inset-0 top-12 bottom-24 flex items-center justify-center z-10">
+                <img 
+                  src={thinker.image} 
+                  alt={thinker.name}
+                  className="w-[120%] h-[120%] object-cover object-center group-hover:scale-110 transition-transform duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)] drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] mix-blend-screen"
+                />
+              </div>
+              
+              {/* Gradient fade from bottom for text readability */}
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/80 to-transparent z-20 pointer-events-none"></div>
+
+              {/* Content */}
+              <div className="relative z-30 p-8 flex flex-col justify-end">
+                <h3 className="text-3xl font-display font-bold text-white mb-2">
+                  {thinker.name}
+                </h3>
+                <p className="text-muted-foreground text-sm mb-6 max-w-[280px]">
+                  {thinker.hook}
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {thinker.topics.map(t => (
+                    <span key={t} className="text-[10px] uppercase font-mono tracking-wider bg-white/5 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-white group-hover:border-white/30 group-hover:bg-white/10 transition-colors duration-500">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </Link>
+        ))}
+
+        {/* Build Your Own Card - Styled to match */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="group relative rounded-2xl border border-purple-500/30 bg-purple-500/5 backdrop-blur-md p-8 md:p-12 overflow-hidden hover:border-purple-500/60 transition-colors"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div>
-              <h3 className="text-2xl md:text-3xl font-display font-bold text-white mb-3">
-                Build a Persona
-              </h3>
-              <p className="text-muted-foreground">
-                Upload writings, letters, or research from someone the world has forgotten, and reconstruct their mind.
-              </p>
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="w-full md:w-1/3 group relative h-[600px] rounded-[2rem] overflow-hidden bg-[#050505] border border-dashed border-white/20 hover:border-solid hover:border-white/40 transition-all duration-700 flex flex-col items-center justify-center text-center p-8 cursor-pointer"
+          >
+            {/* Background grid */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+            <div className="relative z-10 w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-white transition-all duration-500">
+              <svg className="w-8 h-8 text-white group-hover:text-black transition-colors duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              </svg>
             </div>
-            <button className="shrink-0 bg-purple-500 hover:bg-purple-400 text-white font-medium px-8 py-4 rounded-full transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]">
-              Request a Mind →
+            <h3 className="relative z-10 text-3xl font-display font-bold text-white mb-4">
+              Request a Persona
+            </h3>
+            <p className="relative z-10 text-muted-foreground text-sm max-w-[250px] mb-8 leading-relaxed">
+              Have someone in mind? Request a historical figure, and our agents will reconstruct their mind.
+            </p>
+            <button className="relative z-10 bg-white/10 text-white font-medium px-8 py-4 rounded-full group-hover:bg-white group-hover:text-black transition-colors duration-500">
+              Join the Waitlist →
             </button>
-          </div>
         </motion.div>
+
       </div>
     </section>
   );

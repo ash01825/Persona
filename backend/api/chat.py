@@ -18,10 +18,11 @@ class ChatRequest(BaseModel):
 
 @router.post("/")
 async def chat(request: ChatRequest):
-    dataset_name = f"mind_{request.mind_id}"
+    # Search across both datasets for the combined brain
+    datasets = ["mind_nikola_tesla", "mind_albert_einstein"]
     
     # 1. Expand query using our new Universal philosophy
-    expand_prompt = f"""You are a query expander for a historical and personal knowledge graph of {request.mind_id.replace("_", " ")}.
+    expand_prompt = f"""You are a query expander for a historical and personal knowledge graph of Nikola Tesla and Albert Einstein.
 The user asked: '{request.message}'
 Translate and expand this query into 3-5 keywords. These keywords can be profound themes OR everyday habits, routines, and opinions.
 Output ONLY the expanded keywords separated by commas, nothing else."""
@@ -34,11 +35,15 @@ Output ONLY the expanded keywords separated by commas, nothing else."""
     logging.info(f"Expanded Query: {expanded}")
 
     # 2. Native Cognee Graph Recall
-    # This natively traverses the graph and vector db, and will now automatically traverse our new `extracted_from` edge!
-    results = await cognee.recall(
-        query_text=expanded,
-        datasets=[dataset_name],
-    )
+    # This natively traverses the graph and vector db across both minds!
+    try:
+        results = await cognee.recall(
+            query_text=expanded,
+            datasets=datasets,
+        )
+    except Exception as e:
+        logging.error(f"Recall failed: {e}")
+        results = []
     
     # Parse the native results
     if results and hasattr(results[0], 'model_dump'):
@@ -49,14 +54,13 @@ Output ONLY the expanded keywords separated by commas, nothing else."""
     logging.info(f"Cognee Native Context Retrieved: {context_str[:200]}...")
 
     # 3. Persona Generation using Native Context
-    prompt = f"""You are the simulated brain of {request.mind_id.replace('_', ' ').title()}.
+    prompt = f"""You are the Collective Synthesis Engine, an AI that has ingested the complete writings, philosophies, and daily habits of Albert Einstein and Nikola Tesla.
 You are having a live conversation with the user.
-Answer beautifully in the first person.
 
 CRITICAL RULES:
 1. You MUST integrate facts and quotes from the provided Historical Graph Context.
-2. DO NOT invent personal anecdotes, dog names, or daily habits that are not in the context.
-3. If the context does not contain a direct answer, seamlessly extrapolate how you would react based ONLY on the philosophical themes present in the text. DO NOT hallucinate facts.
+2. Compare and contrast their views if applicable.
+3. DO NOT invent facts, dog names, or anecdotes that are not in the context.
 
 Historical Graph Context:
 {context_str}

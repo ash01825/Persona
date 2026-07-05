@@ -58,41 +58,39 @@ export function MindGraph({
       const degree = node.degree || 1;
       const centralityScore = node.centrality ?? 0.0;
       
-      // Extremely minimal sizing. 
-      // Base is a tiny dot (1.2px). Hubs scale up slightly but gracefully.
-      let baseRadius = 1.2 + (degree > 10 ? Math.log10(degree) : degree * 0.1) + (centralityScore * 2);
+      // Slightly larger base size so it doesn't feel like dust, but still elegant
+      let baseRadius = 2.0 + (degree > 10 ? Math.log10(degree) * 1.5 : degree * 0.15) + (centralityScore * 3);
       if (node.type === "Theme") {
-         baseRadius = 4; // Themes are fixed medium size
+         baseRadius = 5; // Themes are fixed medium size
       }
-      baseRadius = Math.max(1, Math.min(5, baseRadius));
+      baseRadius = Math.max(1.5, Math.min(8, baseRadius));
       
-      const radius = isSelected || isHovered ? baseRadius + 1 : baseRadius;
+      const radius = isSelected || isHovered ? baseRadius * 1.5 : baseRadius;
       const color = NODE_COLORS[node.type] ?? "#9ca3af";
       
-      // Solid opacity always. We do NOT dim the rest of the graph.
       ctx.globalAlpha = 1.0;
 
-      // Draw the crisp, flat vector circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
       ctx.fillStyle = color;
       ctx.fill();
 
-      // Subtle stroke for selected/hovered instead of massive glow
       if (isSelected || isHovered) {
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1.5 / globalScale;
         ctx.stroke();
       }
 
-      // Draw Labels ONLY on hover, selection, or very high zoom for hubs
-      if (isSelected || isHovered || (globalScale > 4 && baseRadius > 2.5)) {
-        const fontSize = Math.max(4, 10 / globalScale);
+      // Draw Labels ONLY on hover, selection, OR for major hubs to give the graph structure at 100% zoom
+      const isMajorHub = baseRadius > 3.5;
+      if (isSelected || isHovered || (globalScale > 1.5 && isMajorHub)) {
+        const fontSize = Math.max(4, 12 / globalScale);
         ctx.font = `${fontSize}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         
-        ctx.fillStyle = isSelected || isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.6)";
+        // Muted text for hubs when not hovered, bright when interacted with
+        ctx.fillStyle = isSelected || isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.4)";
         
         const label = node.label ?? "";
         const maxLen = 30;
@@ -100,7 +98,7 @@ export function MindGraph({
         ctx.fillText(
           displayLabel,
           node.x,
-          node.y + radius + fontSize + (1 / globalScale)
+          node.y + radius + fontSize + (2 / globalScale)
         );
       }
     },
@@ -116,14 +114,9 @@ export function MindGraph({
       const isTargetHovered = targetId === hoveredNodeId;
       const isConnectedToHovered = isSourceHovered || isTargetHovered;
 
-      // Base thin spiderweb line
       ctx.globalAlpha = isConnectedToHovered ? 0.8 : 0.4;
-      
-      // Muted, subtle colors
       ctx.strokeStyle = isConnectedToHovered ? "#8892b0" : (EDGE_COLORS[link.type] ?? "#444444");
-      
-      // Super thin edges.
-      ctx.lineWidth = (isConnectedToHovered ? 1.0 : 0.5) / globalScale;
+      ctx.lineWidth = (isConnectedToHovered ? 1.0 : 0.4) / globalScale;
 
       const sx = link.source?.x ?? 0;
       const sy = link.source?.y ?? 0;
@@ -142,33 +135,42 @@ export function MindGraph({
 
   useEffect(() => {
     if (graphRef.current) {
-      // Physics for scale-free / organic networks:
-      // High repulsion so the many leaf nodes don't clump.
-      // Long link distance so it feels like a large structure.
-      graphRef.current.d3Force("charge").strength(-120); // Stronger repulsion for dense clumps
-      graphRef.current.d3Force("link").distance(30);     // Slightly shorter links to pull outliers in
-      graphRef.current.d3Force("center").strength(0.02); // Slightly stronger center pull
+      // Slightly tighten the graph so it doesn't expand infinitely and look tiny
+      graphRef.current.d3Force("charge").strength(-90); 
+      graphRef.current.d3Force("link").distance(35);     
+      graphRef.current.d3Force("center").strength(0.03); 
+    }
+  }, []);
+
+  // Auto-zoom to fit the screen beautifully once the physics engine settles
+  const handleEngineStop = useCallback(() => {
+    if (graphRef.current) {
+      graphRef.current.zoomToFit(400, 50); // 400ms transition, 50px padding
     }
   }, []);
 
   return (
     <div ref={containerRef} className="w-full h-full relative" style={{ backgroundColor: BACKGROUND_COLOR }}>
+      {/* Subtle radial vignette to give the empty space depth */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(0,0,0,0.6)_100%)] pointer-events-none z-0"></div>
+      
       <ForceGraph2D
         ref={graphRef}
         graphData={filteredGraph}
         width={size.width}
         height={size.height}
-        backgroundColor={BACKGROUND_COLOR}
+        backgroundColor="transparent"
         nodeRelSize={2}
         nodeCanvasObject={nodeCanvasObject}
         linkCanvasObject={linkCanvasObject}
         onNodeClick={(node: any) => onNodeClick(node ? node.id : null)}
         onNodeHover={(node: any) => setHoveredNodeId(node?.id ?? null)}
         onBackgroundClick={() => onNodeClick(null)}
-        d3AlphaDecay={0.01} // Slower decay = more time to settle into organic shape
-        d3VelocityDecay={0.25} // Smooth friction
-        cooldownTicks={400}
-        nodeLabel="" // Handled by canvas text
+        d3AlphaDecay={0.02} 
+        d3VelocityDecay={0.3} 
+        cooldownTicks={200} // Stop engine sooner so it frames faster
+        onEngineStop={handleEngineStop}
+        nodeLabel="" 
       />
     </div>
   );

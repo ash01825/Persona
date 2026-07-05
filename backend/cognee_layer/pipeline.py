@@ -161,6 +161,7 @@ async def extract_from_chunk(
 
     content = chunk["content"]
     person_name = chunk.get("person_name", "this person")
+    mind_id = person_name.lower().replace(" ", "_")
 
     source_fragment = SourceFragment(
         content=content,
@@ -168,11 +169,12 @@ async def extract_from_chunk(
         source_title=chunk.get("source_title", ""),
         source_type=chunk.get("source_type", ""),
         chunk_index=chunk.get("chunk_index", 0),
+        mind_id=mind_id,
     )
     datapoints: list[Any] = [source_fragment]
     node_map: dict[str, Any] = {}
 
-    subject = Person(name=person_name, role="subject")
+    subject = Person(name=person_name, role="subject", mind_id=mind_id)
     datapoints.append(subject)
     node_map[person_name.lower()] = subject
 
@@ -205,13 +207,14 @@ async def extract_from_chunk(
                 name=c.name,
                 description=c.description,
                 domain=c.domain,
+                mind_id=mind_id,
             )
             node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[c.name.lower()] = node
 
         for b in extracted.beliefs:
-            node = Belief(name=b.name, description=b.description)
+            node = Belief(name=b.name, description=b.description, mind_id=mind_id)
             node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[b.name.lower()] = node
@@ -221,25 +224,26 @@ async def extract_from_chunk(
                 name=cr.name,
                 creation_type=cr.creation_type,
                 description=cr.description,
+                mind_id=mind_id,
             )
             node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[cr.name.lower()] = node
 
         for p in extracted.people:
-            node = Person(name=p.name, role=p.role)
+            node = Person(name=p.name, role=p.role, mind_id=mind_id)
             node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[p.name.lower()] = node
 
         for f in extracted.findings:
-            node = Finding(name=f.name, description=f.description)
+            node = Finding(name=f.name, description=f.description, mind_id=mind_id)
             node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[f.name.lower()] = node
 
         for inst in extracted.institutions:
-            node = Institution(name=inst.name, institution_type=inst.institution_type)
+            node = Institution(name=inst.name, institution_type=inst.institution_type, mind_id=mind_id)
             node.extracted_from.append(source_fragment)
             datapoints.append(node)
             node_map[inst.name.lower()] = node
@@ -249,7 +253,8 @@ async def extract_from_chunk(
                 name=ev.name, 
                 description=ev.description,
                 date=ev.date,
-                location=ev.location
+                location=ev.location,
+                mind_id=mind_id,
             )
             node.extracted_from.append(source_fragment)
             datapoints.append(node)

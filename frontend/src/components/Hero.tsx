@@ -34,11 +34,11 @@ export function ParticleHero() {
         this.vy = (Math.random() - 0.5) * 0.5;
         this.size = Math.random() * 1.5 + 0.5;
         
-        // Colors: mostly white/gray, some cyan, some purple
+        // Premium monochromatic colors: mostly white/silver
         const r = Math.random();
-        if (r < 0.1) this.color = "rgba(34, 211, 238, 0.8)"; // Cyan
-        else if (r < 0.2) this.color = "rgba(168, 85, 247, 0.8)"; // Purple
-        else this.color = "rgba(255, 255, 255, 0.4)";
+        if (r < 0.2) this.color = "rgba(255, 255, 255, 0.8)"; // Bright white
+        else if (r < 0.4) this.color = "rgba(200, 200, 200, 0.6)"; // Silver
+        else this.color = "rgba(100, 100, 100, 0.3)"; // Dim grey
       }
 
       update() {
@@ -112,10 +112,10 @@ export function ParticleHero() {
     };
   }, []);
 
-  const titleText = "Think with the greatest minds in history.";
+  const titleText = "Think with the Collective Mind of History.";
 
   return (
-    <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
+    <section className="relative h-[90vh] w-full overflow-hidden flex items-center justify-center">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-0 pointer-events-none"
@@ -143,7 +143,7 @@ export function ParticleHero() {
             <span key={wordIndex} className="inline-block whitespace-pre">
               {word.split("").map((char, charIndex) => {
                 const totalIndex = titleText.indexOf(word) + charIndex;
-                const isGreatest = word.includes("greatest");
+                const isHighlight = word.includes("Collective") || word.includes("Mind");
                 return (
                   <motion.span
                     key={charIndex}
@@ -155,8 +155,8 @@ export function ParticleHero() {
                       ease: [0.2, 0.65, 0.3, 0.9],
                     }}
                     className={`inline-block ${
-                      isGreatest
-                        ? "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500"
+                      isHighlight
+                        ? "text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400"
                         : "text-foreground"
                     }`}
                   >
@@ -175,7 +175,7 @@ export function ParticleHero() {
           transition={{ duration: 1, delay: 1.5 }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-12"
         >
-          Persona extracts every belief, contradiction, and invention from raw text to build a navigable, interactive brain.
+          Persona merges beliefs, contradictions, and inventions from raw historical text into a single, navigable, interactive brain.
         </motion.p>
 
         <motion.div
@@ -184,14 +184,8 @@ export function ParticleHero() {
           transition={{ duration: 0.8, delay: 1.8 }}
           className="flex flex-col sm:flex-row items-center gap-6"
         >
-          <button className="bg-foreground text-background px-8 py-4 rounded-full font-medium hover:bg-cyan-400 hover:text-black transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+          <button className="bg-foreground text-background px-8 py-4 rounded-full font-medium hover:bg-neutral-200 hover:text-black transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]">
             Explore the Graph →
-          </button>
-          <button className="flex items-center gap-2 text-foreground/80 hover:text-foreground transition-colors px-6 py-4">
-            <span className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center bg-white/5">
-              ▶
-            </span>
-            Watch Demo
           </button>
         </motion.div>
       </div>
@@ -203,30 +197,30 @@ export function ParticleHero() {
           {[1, 2, 3, 4].map((groupIndex) => (
             <div key={groupIndex} className="flex shrink-0 items-center gap-16 px-8">
               <div className="flex items-baseline gap-4">
-                <span className="text-4xl font-display font-bold text-white">1,240+</span>
+                <span className="text-4xl font-display font-bold text-white">1,000+</span>
                 <span className="text-sm text-muted-foreground flex flex-col">
-                  Concepts Mapped <span className="font-mono text-[10px] uppercase mt-1 text-cyan-400">Database</span>
+                  Nodes Extracted <span className="font-mono text-[10px] uppercase mt-1 text-neutral-400">Database</span>
                 </span>
               </div>
               <div className="w-px h-8 bg-white/10"></div>
               <div className="flex items-baseline gap-4">
-                <span className="text-4xl font-display font-bold text-white">89</span>
+                <span className="text-4xl font-display font-bold text-white">50</span>
                 <span className="text-sm text-muted-foreground flex flex-col">
-                  Primary Sources <span className="font-mono text-[10px] uppercase mt-1 text-purple-400">Processed</span>
+                  Primary Sources <span className="font-mono text-[10px] uppercase mt-1 text-neutral-400">Processed</span>
                 </span>
               </div>
               <div className="w-px h-8 bg-white/10"></div>
               <div className="flex items-baseline gap-4">
-                <span className="text-4xl font-display font-bold text-white">12</span>
+                <span className="text-4xl font-display font-bold text-white">5</span>
                 <span className="text-sm text-muted-foreground flex flex-col">
-                  Minds Built <span className="font-mono text-[10px] uppercase mt-1 text-amber-400">Active</span>
+                  Thematic Clusters <span className="font-mono text-[10px] uppercase mt-1 text-neutral-400">Louvain</span>
                 </span>
               </div>
               <div className="w-px h-8 bg-white/10"></div>
               <div className="flex items-baseline gap-4">
-                <span className="text-4xl font-display font-bold text-white">4.2M</span>
+                <span className="text-4xl font-display font-bold text-white">2,500+</span>
                 <span className="text-sm text-muted-foreground flex flex-col">
-                  Graph Edges <span className="font-mono text-[10px] uppercase mt-1 text-white/40">Connected</span>
+                  Graph Edges <span className="font-mono text-[10px] uppercase mt-1 text-neutral-400">Connected</span>
                 </span>
               </div>
               <div className="w-px h-8 bg-white/10"></div>

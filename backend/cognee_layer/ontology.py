@@ -29,6 +29,7 @@ class Concept(DataPoint):
     name: Annotated[str, Dedup(), Embeddable()]
     description: Annotated[str, Embeddable()]
     domain: str = ""
+    mind_id: str = ""
 
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
@@ -47,6 +48,7 @@ class Belief(DataPoint):
 
     name: Annotated[str, Dedup(), Embeddable()]
     description: Annotated[str, Embeddable()]
+    mind_id: str = ""
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
     evolved_from: SkipValidation[Any] = []
@@ -63,6 +65,7 @@ class Creation(DataPoint):
     name: Annotated[str, Dedup(), Embeddable()]
     creation_type: str = ""
     description: Annotated[str, Embeddable()]
+    mind_id: str = ""
 
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
@@ -80,6 +83,7 @@ class Finding(DataPoint):
 
     name: Annotated[str, Dedup(), Embeddable()]
     description: Annotated[str, Embeddable()]
+    mind_id: str = ""
 
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
@@ -97,6 +101,7 @@ class Person(DataPoint):
 
     name: Annotated[str, Dedup(), Embeddable()]
     role: str = ""
+    mind_id: str = ""
     created: SkipValidation[Any] = []
     influenced_by: SkipValidation[Any] = []
     supports: SkipValidation[Any] = []
@@ -112,6 +117,7 @@ class Institution(DataPoint):
 
     name: Annotated[str, Dedup(), Embeddable()]
     institution_type: str = ""
+    mind_id: str = ""
 
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
@@ -130,6 +136,7 @@ class BiographicalEvent(DataPoint):
     description: Annotated[str, Embeddable()]
     date: str = ""
     location: str = ""
+    mind_id: str = ""
 
     supports: SkipValidation[Any] = []
     contradicts: SkipValidation[Any] = []
@@ -153,6 +160,7 @@ class SourceFragment(DataPoint):
     source_title: str = ""
     source_type: str = ""
     chunk_index: int = 0
+    mind_id: str = ""
 
 
 class Theme(DataPoint):
@@ -167,3 +175,4 @@ class Theme(DataPoint):
     name: Annotated[str, Dedup(), Embeddable()]
     description: Annotated[str, Embeddable()]
     community_id: int = 0
+    mind_id: str = ""
