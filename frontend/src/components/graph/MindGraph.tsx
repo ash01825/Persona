@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useWindowSize } from "@/lib/hooks/useWindowSize";
 import type { GraphNode, GraphEdge } from "@/lib/types";
@@ -31,22 +31,24 @@ export function MindGraph({
   const containerRef = useRef<HTMLDivElement>(null);
   const size = useWindowSize(containerRef);
 
-  const visibleNodeIds = new Set(
+  const visibleNodeIds = useMemo(() => new Set(
     graph.nodes
       .filter((node) => typeFilters.length === 0 || typeFilters.includes(node.type))
       .map((n) => n.id)
-  );
+  ), [graph.nodes, typeFilters]);
 
-  const filteredGraph = {
-    nodes: graph.nodes.filter((n) => visibleNodeIds.has(n.id)),
-    links: graph.edges
-      .filter((e) => {
-        const sourceId = typeof e.source === "string" ? e.source : e.source.id;
-        const targetId = typeof e.target === "string" ? e.target : e.target.id;
-        return visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId);
-      })
-      .map((e) => ({ ...e })),
-  };
+  const filteredGraph = useMemo(() => {
+    return {
+      nodes: graph.nodes.filter((n) => visibleNodeIds.has(n.id)),
+      links: graph.edges
+        .filter((e) => {
+          const sourceId = typeof e.source === "string" ? e.source : (e.source as any).id;
+          const targetId = typeof e.target === "string" ? e.target : (e.target as any).id;
+          return visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId);
+        })
+        .map((e) => ({ ...e })),
+    };
+  }, [graph.nodes, graph.edges, visibleNodeIds]);
 
   const nodeCanvasObject = useCallback(
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -115,13 +117,13 @@ export function MindGraph({
       const isConnectedToHovered = isSourceHovered || isTargetHovered;
 
       // Base thin spiderweb line
-      ctx.globalAlpha = isConnectedToHovered ? 0.6 : 0.2;
+      ctx.globalAlpha = isConnectedToHovered ? 0.8 : 0.4;
       
       // Muted, subtle colors
-      ctx.strokeStyle = isConnectedToHovered ? "#8892b0" : (EDGE_COLORS[link.type] ?? "#333333");
+      ctx.strokeStyle = isConnectedToHovered ? "#8892b0" : (EDGE_COLORS[link.type] ?? "#444444");
       
-      // Super thin edges. E.g. 0.2px normally.
-      ctx.lineWidth = (isConnectedToHovered ? 0.6 : 0.2) / globalScale;
+      // Super thin edges.
+      ctx.lineWidth = (isConnectedToHovered ? 1.0 : 0.5) / globalScale;
 
       const sx = link.source?.x ?? 0;
       const sy = link.source?.y ?? 0;
@@ -143,9 +145,9 @@ export function MindGraph({
       // Physics for scale-free / organic networks:
       // High repulsion so the many leaf nodes don't clump.
       // Long link distance so it feels like a large structure.
-      graphRef.current.d3Force("charge").strength(-80); 
-      graphRef.current.d3Force("link").distance(50);
-      graphRef.current.d3Force("center").strength(0.01); // Very gentle center pull
+      graphRef.current.d3Force("charge").strength(-120); // Stronger repulsion for dense clumps
+      graphRef.current.d3Force("link").distance(30);     // Slightly shorter links to pull outliers in
+      graphRef.current.d3Force("center").strength(0.02); // Slightly stronger center pull
     }
   }, []);
 
