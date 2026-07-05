@@ -20,6 +20,26 @@ export function GraphPanel() {
         const response = await fetch("http://localhost:8000/api/minds/einstein/graph");
         if (!response.ok) throw new Error("Failed to fetch graph data");
         const data = await response.json();
+        
+        // Calculate degree and simple centrality on the frontend
+        const degreeMap: Record<string, number> = {};
+        data.edges.forEach((e: any) => {
+          const sId = typeof e.source === 'string' ? e.source : e.source.id;
+          const tId = typeof e.target === 'string' ? e.target : e.target.id;
+          degreeMap[sId] = (degreeMap[sId] || 0) + 1;
+          degreeMap[tId] = (degreeMap[tId] || 0) + 1;
+        });
+        
+        let maxDegree = 1;
+        data.nodes.forEach((n: any) => {
+          n.degree = degreeMap[n.id] || 0;
+          if (n.degree > maxDegree) maxDegree = n.degree;
+        });
+        
+        data.nodes.forEach((n: any) => {
+          n.centrality = n.degree / maxDegree;
+        });
+
         setGraphData(data);
       } catch (error) {
         console.error("Error loading graph:", error);
