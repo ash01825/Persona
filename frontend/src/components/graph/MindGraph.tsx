@@ -102,7 +102,7 @@ export function MindGraph({
         );
       }
     },
-    [selectedNodeId, hoveredNodeId] // Removed edges/paths dependencies because we don't fade others
+    [selectedNodeId, hoveredNodeId] 
   );
 
   const linkCanvasObject = useCallback(

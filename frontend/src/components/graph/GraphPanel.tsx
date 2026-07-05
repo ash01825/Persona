@@ -16,8 +16,16 @@ export function GraphPanel() {
 
   useEffect(() => {
     const loadData = async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setGraphData(generateDummyGraph());
+      try {
+        const response = await fetch("http://localhost:8000/api/minds/einstein/graph");
+        if (!response.ok) throw new Error("Failed to fetch graph data");
+        const data = await response.json();
+        setGraphData(data);
+      } catch (error) {
+        console.error("Error loading graph:", error);
+        // Fallback to dummy graph or handle error visually if needed
+        setGraphData({ nodes: [], edges: [], stats: { total_nodes: 0, total_edges: 0, sources_count: 0, themes_count: 0 } });
+      }
     };
     
     loadData();
@@ -65,7 +73,7 @@ export function GraphPanel() {
       
       <div className="absolute inset-0 z-10">
         <MindGraph
-          graph={{ nodes: graphData.nodes, edges: graphData.edges }}
+          graph={graphData}
           selectedNodeId={selectedNodeId}
           onNodeClick={setSelectedNodeId}
           highlightedPath={highlightedPath}
