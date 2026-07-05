@@ -134,7 +134,7 @@ CRITICAL: DO NOT accept Wikipedia, encyclopedias, or generic summary sites as pr
 
 Respond ONLY with a valid JSON object in this exact format:
 {{
-    "is_valuable": true or false,
+    "relevance_score": integer (0 to 100, where 100 is a dense primary source full of original thought/letters, and 0 is junk or secondary summary),
     "reason": "short explanation",
     "links_to_follow": ["url1", "url2"]
 }}
@@ -165,17 +165,18 @@ Text snippet (first 4000 chars):
                 await asyncio.sleep(4)
                 continue
                 
-            if decision.get("is_valuable"):
-                logger.info(f"✅ LLM ACCEPTED {url}: {decision.get('reason')}")
+            if decision.get("relevance_score", 0) >= 50:
+                logger.info(f"✅ LLM ACCEPTED {url} (Score {decision.get('relevance_score', 0)}): {decision.get('reason')}")
                 sources_found += 1
                 yield {
                     "title": url.split("/")[-1] or url,
                     "content": markdown_content,
                     "url": url,
-                    "source_type": "web_article"
+                    "source_type": "web_article",
+                    "relevance_score": decision.get("relevance_score", 0)
                 }
             else:
-                logger.info(f"❌ LLM REJECTED {url}: {decision.get('reason')}")
+                logger.info(f"❌ LLM REJECTED {url} (Score {decision.get('relevance_score', 0)}): {decision.get('reason')}")
                 
             # Append new links to queue
             new_links = decision.get("links_to_follow", [])
