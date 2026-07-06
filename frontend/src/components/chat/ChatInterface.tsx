@@ -34,7 +34,8 @@ export function ChatInterface({ mindId, mindName }: { mindId: string; mindName: 
     setIsTyping(true);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${baseUrl}/api/chat/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mind_id: mindId, message: userMessage.content })

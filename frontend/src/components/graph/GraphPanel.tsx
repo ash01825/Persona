@@ -17,7 +17,8 @@ export function GraphPanel() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/minds/einstein/graph");
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const response = await fetch(`${baseUrl}/api/minds/einstein/graph`);
         if (!response.ok) throw new Error("Failed to fetch graph data");
         const data = await response.json();
         
