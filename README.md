@@ -2,7 +2,7 @@
 
 > **The Greatest Minds in the Palm of Your Hand.**
 
-![Persona Landing Page](./frontend/public/images/collective.jpg)
+![Persona Landing Page](Screenshot 2026-07-06 at 1.31.21 PM.png)
 
 **Persona** is a platform for navigating the intellectual DNA of historical and modern figures. We haven't just built a chatbot—we have built an **autonomous AI pipeline** that ingests everything a thinker ever wrote, said, or published, and constructs an interactive, multi-modal knowledge graph of their ideas, beliefs, creations, and contradictions. 
 
@@ -17,10 +17,7 @@ Every great thinker is a universe of interconnected ideas. For our initial demo,
 When you explore a Persona, you are navigating an actual, highly structured graph database built entirely by AI reading primary sources.
 
 ### Albert Einstein
-![Albert Einstein Knowledge Graph](./frontend/public/images/einstein.jpg)
-
-### Nikola Tesla
-![Nikola Tesla Knowledge Graph](./frontend/public/images/tesla.jpg)
+![Albert Einstein Knowledge Graph](Screenshot 2026-07-06 at 11.13.08 AM.png)
 
 Every node in these graphs represents a distinct concept, belief, finding, or creation. Every edge represents a relationship—how one idea *influenced*, *supported*, or *contradicted* another. When you chat with these minds, the agent traverses this very graph to construct its answers, citing the exact source documents it used.
 
