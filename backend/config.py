@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Embedding
     embedding_provider: str = ""
-    embedding_endpoint: str = ""
+    embedding_endpoint: str | None = None
     embedding_model: str = ""
     embedding_api_key: str = ""
     embedding_dimensions: int = 2048

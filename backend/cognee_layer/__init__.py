@@ -28,13 +28,18 @@ async def initialize_cognee() -> None:
         })
 
         # ── Embedding configuration ─────────────────────────────────────────
-        cognee.config.set_embedding_config({
+        embed_cfg = {
             "embedding_provider": settings.embedding_provider,
             "embedding_model": settings.embedding_model,
-            "embedding_endpoint": settings.embedding_endpoint,
             "embedding_api_key": settings.embedding_api_key,
             "embedding_dimensions": settings.embedding_dimensions,
-        })
+        }
+        if settings.embedding_endpoint:
+            embed_cfg["embedding_endpoint"] = settings.embedding_endpoint
+        elif hasattr(cognee.config, "embedding_endpoint"):
+            embed_cfg["embedding_endpoint"] = None
+
+        cognee.config.set_embedding_config(embed_cfg)
 
         # ── Relational store (PostgreSQL) ───────────────────────────────────
         cognee.config.set_relational_db_config({
@@ -47,13 +52,16 @@ async def initialize_cognee() -> None:
         })
 
         # ── Vector store (pgvector) ─────────────────────────────────────────
-        cognee.config.set_vector_db_config({
-            "vector_db_provider": "pgvector",
-            "vector_db_url": (
-                f"postgresql+asyncpg://{settings.db_user}:{settings.db_password}"
-                f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
-            ),
-        })
+        # In build_mind.py, vector_db_config was never explicitly set,
+        # meaning all embeddings were actually built and stored in the default LanceDB.
+        # We must NOT force pgvector here, otherwise chat won't find the collections.
+        # cognee.config.set_vector_db_config({
+        #     "vector_db_provider": "pgvector",
+        #     "vector_db_url": (
+        #         f"postgresql+asyncpg://{settings.db_user}:{settings.db_password}"
+        #         f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+        #     ),
+        # })
 
         # ── Graph store (Neo4j) ─────────────────────────────────────────────
         cognee.config.set_graph_db_config({

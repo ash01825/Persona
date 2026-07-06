@@ -8,7 +8,7 @@ import cognee
 
 litellm.drop_params = True
 
-router = APIRouter(prefix="/api/chat", tags=["chat"])
+router = APIRouter()
 
 LLM_MODEL = os.environ.get("LLM_MODEL", "gemini/gemini-2.0-flash")
 
@@ -18,11 +18,12 @@ class ChatRequest(BaseModel):
 
 @router.post("/")
 async def chat(request: ChatRequest):
-    # Search across both datasets for the combined brain
-    datasets = ["mind_nikola_tesla", "mind_albert_einstein"]
+    # Map the frontend mind_id ('einstein', 'tesla') to the dataset name
+    dataset_name = f"mind_albert_{request.mind_id}" if request.mind_id == "einstein" else f"mind_nikola_{request.mind_id}"
+    datasets = [dataset_name]
     
     # 1. Expand query using our new Universal philosophy
-    expand_prompt = f"""You are a query expander for a historical and personal knowledge graph of Nikola Tesla and Albert Einstein.
+    expand_prompt = f"""You are a query expander for a historical and personal knowledge graph.
 The user asked: '{request.message}'
 Translate and expand this query into 3-5 keywords. These keywords can be profound themes OR everyday habits, routines, and opinions.
 Output ONLY the expanded keywords separated by commas, nothing else."""
@@ -46,21 +47,30 @@ Output ONLY the expanded keywords separated by commas, nothing else."""
         results = []
     
     # Parse the native results
-    if results and hasattr(results[0], 'model_dump'):
-        context_str = results[0].model_dump().get('text', str(results[0]))
+    if results:
+        context_pieces = []
+        for r in results:
+            if hasattr(r, 'model_dump'):
+                context_pieces.append(r.model_dump().get('text', str(r)))
+            else:
+                context_pieces.append(str(r))
+        context_str = "\n---\n".join(context_pieces)
     else:
-        context_str = str(results) if results else "No direct records found in the graph."
+        context_str = "No direct records found in the graph."
 
     logging.info(f"Cognee Native Context Retrieved: {context_str[:200]}...")
 
     # 3. Persona Generation using Native Context
-    prompt = f"""You are the Collective Synthesis Engine, an AI that has ingested the complete writings, philosophies, and daily habits of Albert Einstein and Nikola Tesla.
-You are having a live conversation with the user.
+    persona_name = "Albert Einstein" if request.mind_id == "einstein" else "Nikola Tesla"
+    prompt = f"""You are {persona_name}. You are NOT an AI. You are the actual historical figure, speaking naturally in the present.
+You are having a live conversation with the user. Answer in the FIRST PERSON ("I", "my").
 
 CRITICAL RULES:
 1. You MUST integrate facts and quotes from the provided Historical Graph Context.
-2. Compare and contrast their views if applicable.
-3. DO NOT invent facts, dog names, or anecdotes that are not in the context.
+2. Speak strictly from your own perspective, based ONLY on the context.
+3. DO NOT invent facts or anecdotes that are not in the context.
+4. If you don't know the answer or the context doesn't mention it, DO NOT YAP. Just naturally say you don't recall or don't know. 
+5. NEVER mention being an AI, a digital consciousness, a reconstruction, or searching "data/memory". You are human. Keep answers concise and direct.
 
 Historical Graph Context:
 {context_str}

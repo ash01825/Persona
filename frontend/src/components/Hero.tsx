@@ -112,7 +112,7 @@ export function ParticleHero() {
     };
   }, []);
 
-  const titleText = "Think with the Collective Mind of History.";
+  const titleText = "Think with the greatest minds in history.";
 
   return (
     <section className="relative h-[90vh] w-full overflow-hidden flex items-center justify-center">
@@ -143,7 +143,7 @@ export function ParticleHero() {
             <span key={wordIndex} className="inline-block whitespace-pre">
               {word.split("").map((char, charIndex) => {
                 const totalIndex = titleText.indexOf(word) + charIndex;
-                const isHighlight = word.includes("Collective") || word.includes("Mind");
+                const isGreatest = word.includes("greatest");
                 return (
                   <motion.span
                     key={charIndex}
@@ -155,8 +155,8 @@ export function ParticleHero() {
                       ease: [0.2, 0.65, 0.3, 0.9],
                     }}
                     className={`inline-block ${
-                      isHighlight
-                        ? "text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400"
+                      isGreatest
+                        ? "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]"
                         : "text-foreground"
                     }`}
                   >
@@ -175,7 +175,7 @@ export function ParticleHero() {
           transition={{ duration: 1, delay: 1.5 }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-12"
         >
-          Persona merges beliefs, contradictions, and inventions from raw historical text into a single, navigable, interactive brain.
+          Persona extracts every belief, contradiction, and invention from raw text to build a navigable, interactive brain.
         </motion.p>
 
         <motion.div
